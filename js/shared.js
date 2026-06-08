@@ -98,10 +98,10 @@ function formatText(text) {
     var html = text;
 
     // Bold
-    html = html.replace(/\*\*([^*]+)\*\*/g, "$1");
+    html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
 
     // Italic
-    html = html.replace(/\*([^*]+)\*/g, "$1");
+    html = html.replace(/\*([^*]+)\*/g, "<em>$1</em>");
 
     // Paragraphs
     var paragraphs = html.split("\n\n");
@@ -109,18 +109,18 @@ function formatText(text) {
 
     for (var i = 0; i < paragraphs.length; i++) {
         if (paragraphs[i].trim()) {
-            result += "\n\n" + paragraphs[i] + "\n\n";
+        result += "<p>" + paragraphs[i].trim() + "</p>";
         }
     }
 
-    return result || ("\n" + html + "\n\n");
+    return result || ("<p>" + html + "</p>");
 }
 
 
 function cleanJsonResponse(text) {
     var cleaned = text;
-    cleaned = cleaned.replace(/json\s*/g, "");
-    cleaned = cleaned.replace(/\s*/g, "");
+    cleaned = cleaned.replace(/```json\s*/g, "");
+    cleaned = cleaned.replace(/```\s*/g, "");
     cleaned = cleaned.trim();
     return cleaned;
 }
@@ -322,8 +322,8 @@ function loadQuiz() {
     var levelLabel = typeof LEVEL_LABELS !== "undefined" && selectedLevel ? LEVEL_LABELS[selectedLevel] : selectedLevel;
 
     var prompt = 'You are a ' + moduleLabel + ' compliance trainer. Create EXACTLY 3 assessment questions for a ' + levelLabel + '.\n\n'
-- 'Create:\n- 2 scenario-based questions (practical, realistic situations)\n- 1 knowledge question (testing regulatory understanding)\n\n'
-- 'Return STRICT JSON only, no markdown:\n[\n  {\n    "q": "Full question text",\n    "hint": "Brief hint for the answer field placeholder"\n  }\n]';
++ 'Create:\n- 2 scenario-based questions (practical, realistic situations)\n- 1 knowledge question (testing regulatory understanding)\n\n'
++ 'Return STRICT JSON only, no markdown:\n[\n  {\n    "q": "Full question text",\n    "hint": "Brief hint for the answer field placeholder"\n  }\n]';
 
     callClaude(
         [{ role: "user", content: prompt }],
@@ -350,17 +350,17 @@ function renderQuizQuestions(questions) {
         el.className = "quiz-q";
         el.id = "qq" + i;
         el.innerHTML = '<div class="quiz-q-header">'
-- '<span class="quiz-num">Q' + (i + 1) + '</span>'
-- '<div class="quiz-q-text">' + q.q + '</div>'
-- '</div>'
-- '<div class="quiz-q-body">'
-- '<textarea class="quiz-textarea" id="qa' + i + '" placeholder="' + (q.hint || "Type your answer...") + '" rows="3"></textarea>'
-- '<button class="btn-check" id="qbtn' + i + '" onclick="checkAnswer(' + i + ')">Check Answer</button>'
-- '<div class="quiz-feedback" id="qfb' + i + '">'
-- '<div class="fb-label" id="qfblabel' + i + '">Feedback</div>'
-- '<p id="qfbtext' + i + '"></p>'
-- '</div>'
-- '</div>';
++ '<span class="quiz-num">Q' + (i + 1) + '</span>'
++ '<div class="quiz-q-text">' + q.q + '</div>'
++ '</div>'
++ '<div class="quiz-q-body">'
++ '<textarea class="quiz-textarea" id="qa' + i + '" placeholder="' + (q.hint || "Type your answer...") + '" rows="3"></textarea>'
++ '<button class="btn-check" id="qbtn' + i + '" onclick="checkAnswer(' + i + ')">Check Answer</button>'
++ '<div class="quiz-feedback" id="qfb' + i + '">'
++ '<div class="fb-label" id="qfblabel' + i + '">Feedback</div>'
++ '<p id="qfbtext' + i + '"></p>'
++ '</div>'
++ '</div>';
         container.appendChild(el);
     }
 
@@ -384,13 +384,13 @@ function checkAnswer(idx) {
     var strictnessInstr = typeof STRICTNESS_INSTRUCTIONS !== "undefined" && selectedStrictness ? STRICTNESS_INSTRUCTIONS[selectedStrictness] : "";
 
     var prompt = 'You are a ' + moduleLabel + ' compliance trainer. Evaluate the following answer from a ' + levelLabel + '.\n\n'
-- 'STRICTNESS LEVEL:\n' + strictnessInstr + '\n\n'
-- 'Question: ' + questions[idx].q + '\n\n'
-- 'Trainee answer: ' + answer + '\n\n'
-- 'Provide your evaluation in this exact JSON format (nothing else, no markdown):\n'
-- '{\n  "score": "goed|gedeeltelijk|onvoldoende",\n'
-- '  "feedback": "Max 4 sentences in English. Start with what was good, then areas for improvement.",\n'
-- '  "correctAnswer": "The ideal complete answer, referencing relevant articles where appropriate, in English."\n}';
++ 'STRICTNESS LEVEL:\n' + strictnessInstr + '\n\n'
++ 'Question: ' + questions[idx].q + '\n\n'
++ 'Trainee answer: ' + answer + '\n\n'
++ 'Provide your evaluation in this exact JSON format (nothing else, no markdown):\n'
++ '{\n  "score": "goed|gedeeltelijk|onvoldoende",\n'
++ '  "feedback": "Max 4 sentences in English. Start with what was good, then areas for improvement.",\n'
++ '  "correctAnswer": "The ideal complete answer, referencing relevant articles where appropriate, in English."\n}';
 
     callClaude(
         [{ role: "user", content: prompt }],
@@ -467,6 +467,16 @@ function submitAllQuiz() {
 
 function checkAllQuizDone() {
     var questions = window._quizQuestions;
+
+Ik merk dat dit antwoord door de omvang steeds wordt afgekapt. Laat me een andere aanpak kiezen: ik geef je de resterende files één voor één zodat elke file compleet is.
+
+________________________________________
+
+File 3 (vervolg): js/shared.js — alleen het resterende deel
+
+Dit is het deel dat direct aansluit na function checkAllQuizDone() { en var questions = window._quizQuestions;:
+
+javascript
     if (!questions) return;
     var allDone = true;
     for (var i = 0; i < questions.length; i++) {
@@ -504,15 +514,15 @@ function generateCertificate() {
     }
 
     content.innerHTML = '<h2>🏆 Certificate of Completion</h2>'
-- '<p><strong>' + moduleLabel + ' Compliance Training</strong></p>'
-- '<p>Level: ' + (levelLabel || "") + '</p>'
-- '<p>Date: ' + today + '</p>'
-- '<p>Results: ' + scoreCount.goed + ' correct · ' + scoreCount.gedeeltelijk + ' partial · ' + scoreCount.onvoldoende + ' insufficient</p>'
-- '<p style="font-size:11px;color:var(--muted);margin-top:4px">Certificate ID: ' + certId + '</p>'
-- '<div class="popup-buttons">'
-- '<button class="btn-primary" onclick="downloadCertificatePDF(\'' + certId + '\')">Download PDF</button>'
-- '<button class="btn-secondary" onclick="closePopup()">Close</button>'
-- '</div>';
++ '<p><strong>' + moduleLabel + ' Compliance Training</strong></p>'
++ '<p>Level: ' + (levelLabel || "") + '</p>'
++ '<p>Date: ' + today + '</p>'
++ '<p>Results: ' + scoreCount.goed + ' correct · ' + scoreCount.gedeeltelijk + ' partial · ' + scoreCount.onvoldoende + ' insufficient</p>'
++ '<p style="font-size:11px;color:var(--muted);margin-top:4px">Certificate ID: ' + certId + '</p>'
++ '<div class="popup-buttons">'
++ '<button class="btn-primary" onclick="downloadCertificatePDF(\'' + certId + '\')">Download PDF</button>'
++ '<button class="btn-secondary" onclick="closePopup()">Close</button>'
++ '</div>';
 
     popup.classList.remove("hidden");
 }
