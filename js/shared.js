@@ -93,30 +93,29 @@ function handleChatKey(event) {
 }
 
 function formatText(text) {
-if (!text) return "";
-var html = text;
-// Bold
-html = html.replace(new RegExp("\\*\\*([^*]+)\\*\\*", "g"), "$1");
-// Italic
-html = html.replace(new RegExp("\\*([^*]+)\\*", "g"), "$1");
-// Paragraphs
-var paragraphs = html.split("\n\n");
-var result = "";
-for (var i = 0; i < paragraphs.length; i++) {
-if (paragraphs[i].trim()) {
-result += "
+    if (!text) return "";
 
-" + paragraphs[i].replace(/\n/g, "
-") + "
+    var html = text;
 
-";
-}
-}
-return result || ("
-" + html + "
+    // Bold
+    html = html.replace(/\*\*([^*]+)\*\*/g, "$1");
 
-");
+    // Italic
+    html = html.replace(/\*([^*]+)\*/g, "$1");
+
+    // Paragraphs
+    var paragraphs = html.split("\n\n");
+    var result = "";
+
+    for (var i = 0; i < paragraphs.length; i++) {
+        if (paragraphs[i].trim()) {
+            result += "\n\n" + paragraphs[i] + "\n\n";
+        }
+    }
+
+    return result || ("\n" + html + "\n\n");
 }
+
 
 function cleanJsonResponse(text) {
     var cleaned = text;
