@@ -1,52 +1,45 @@
 {
-"version": 2,
-"framework": null,
-"buildCommand": null,
-"outputDirectory": null,
-"routes": [
-{
-"src": "/api/auth",
-"dest": "/api/auth.js"
-},
-{
-"src": "/api/claude",
-"dest": "/api/claude.js"
-},
-{
-"src": "/api/config",
-"dest": "/api/config.js"
-},
-{
-"src": "/login.html",
-"dest": "/login.html"
-},
-{
-"src": "/aml.html",
-"dest": "/aml.html"
-},
-{
-"src": "/mar.html",
-"dest": "/mar.html"
-},
-{
-"src": "/css/(.*)",
-"dest": "/css/$1"
-},
-{
-"src": "/js/(.*)",
-"dest": "/js/$1"
-},
-{
-"src": "/(.*)",
-"dest": "/login.html"
-}
-],
-"headers": [
-{
-"source": "/api/(.*)",
-"headers": [
-{ "key": "Cache-Control", "value": "no-store" }
-]
-}
-]
+  "version": 2,
+  "routes": [
+    {
+      "src": "/api/auth",
+      "dest": "/api/auth.js"
+    },
+    {
+      "src": "/api/claude",
+      "dest": "/api/claude.js"
+    },
+    {
+      "src": "/api/config",
+      "dest": "/api/config.js"
+    },
+    {
+      "src": "/index.html",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/login.html",
+      "dest": "/login.html"
+    },
+    {
+      "src": "/aml.html",
+      "dest": "/aml.html"
+    },
+    {
+      "src": "/mar.html",
+      "dest": "/mar.html"
+    },
+    {
+      "src": "/css/(.*)",
+      "dest": "/css/$1"
+    },
+    {
+      "src": "/js/(.*)",
+      "dest": "/js/$1"
+    },
+    {
+      "src": "/",
+      "dest": "/login.html"
+    }
+  ]
 }
