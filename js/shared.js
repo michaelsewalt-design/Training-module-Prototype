@@ -93,16 +93,31 @@ function handleChatKey(event) {
 }
 
 function formatText(text) {
-    var html = text
-        .replace(/\\(.?)\\*/g, "<strong>$1</strong>")
-        .replace(/\(.?)\*/g, "<em>$1</em>");
+    if (!text) return "";
+    var html = text;
+    // Bold: **text**
+    html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
 
+    // Italic: *text*
+    html = html.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+    // Paragraphs
     var paragraphs = html.split("\n\n");
     var result = "";
     for (var i = 0; i < paragraphs.length; i++) {
-        result += "<p>" + paragraphs[i].replace(/\n/g, "<br>") + "</p>";
+        if (paragraphs[i].trim()) {
+            result += "<p>" + paragraphs[i].replace(/\n/g, "<br>") + "</p>";
+        }
     }
-    return result;
+    return result || "<p>" + html + "</p>";
+}
+
+function cleanJsonResponse(text) {
+    // Remove markdown code fences that Claude sometimes adds
+    var cleaned = text;
+    cleaned = cleaned.replace(/```json\s*/g, "");
+    cleaned = cleaned.replace(/```\s*/g, "");
+    cleaned = cleaned.trim();
+    return cleaned;
 }
 
 // ─── SHARED STATE ──────────────────────
@@ -118,7 +133,8 @@ var quizResults = [];
 
 // ─── LEVEL SELECTION ───────────────────
 function selectLevel(btn) {
-    var buttons = document.querySelectorAll("setupScreen .level-grid .level-btn");
+    // Clear all level buttons in the setup screen
+    var buttons = document.querySelectorAll("#setupScreen .level-grid .level-btn");
     for (var i = 0; i < buttons.length; i++) {
         buttons[i].classList.remove("selected");
     }
@@ -219,7 +235,7 @@ function resetTraining() {
 
     for (var j = 1; j <= 5; j++) {
         var sc = document.getElementById("sc" + j);
-        if (sc) sc.textContent = j;
+        if (sc) sc.textContent = "" + j;
     }
 
     document.getElementById("step1").classList.add("active");
