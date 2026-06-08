@@ -467,16 +467,6 @@ function submitAllQuiz() {
 
 function checkAllQuizDone() {
     var questions = window._quizQuestions;
-
-Ik merk dat dit antwoord door de omvang steeds wordt afgekapt. Laat me een andere aanpak kiezen: ik geef je de resterende files één voor één zodat elke file compleet is.
-
-________________________________________
-
-File 3 (vervolg): js/shared.js — alleen het resterende deel
-
-Dit is het deel dat direct aansluit na function checkAllQuizDone() { en var questions = window._quizQuestions;:
-
-javascript
     if (!questions) return;
     var allDone = true;
     for (var i = 0; i < questions.length; i++) {
