@@ -262,5 +262,27 @@ body::before {
   <div class="footer">© Compliance Training Platform · All rights reserved</div>
 
 </div>
+
+<script>
+(function() {
+    var token = sessionStorage.getItem("ct_token");
+    if (!token) {
+        window.location.href = "/login.html";
+        return;
+    }
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", "/api/auth", true);
+    xhr.setRequestHeader("Authorization", "Bearer " + token);
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState !== 4) return;
+        if (xhr.status !== 200) {
+            sessionStorage.removeItem("ct_token");
+            window.location.href = "/login.html";
+        }
+    };
+    xhr.onerror = function() {};
+    xhr.send();
+})();
+</script>
 </body>
 </html>
