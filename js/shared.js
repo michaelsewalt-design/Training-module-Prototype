@@ -119,8 +119,8 @@ function formatText(text) {
 
 function cleanJsonResponse(text) {
     var cleaned = text;
-    cleaned = cleaned.replace(/json\s*/g, "");
-    cleaned = cleaned.replace(/\s*/g, "");
+    cleaned = cleaned.replace(/```json\s*/g, "");
+    cleaned = cleaned.replace(/```\s*/g, "");
     cleaned = cleaned.trim();
     return cleaned;
 }
@@ -138,9 +138,9 @@ var quizResults = [];
 
 // ─── LEVEL SELECTION ───────────────────
 function selectLevel(btn) {
-    var buttons = document.querySelectorAll("setupScreen .level-grid:first-of-type .level-btn");
+    var buttons = document.querySelectorAll("#setupScreen .level-grid:first-of-type .level-btn");
     if (buttons.length === 0) {
-        buttons = document.querySelectorAll("setupScreen .level-btn[data-level]");
+        buttons = document.querySelectorAll("#setupScreen .level-btn[data-level]");
     }
     for (var i = 0; i < buttons.length; i++) {
         if (buttons[i].hasAttribute("data-level")) {
@@ -414,8 +414,8 @@ function checkAnswer(idx) {
         fbEl.className = "quiz-feedback visible " + (scoreMap[parsed.score] || "partial");
         document.getElementById("qfblabel" + idx).textContent = labelMap[parsed.score] || "Feedback";
         document.getElementById("qfbtext" + idx).innerHTML =
-            '<p><strong>Feedback:</strong> ' + (parsed.feedback || '') + '</p>'
-- '<p style="margin-top:8px"><strong>Model Answer:</strong> ' + (parsed.correctAnswer || '') + '</p>';
+          '<p><strong>Feedback:</strong> ' + (parsed.feedback || '') + '</p>' +
+          '<p style="margin-top:8px"><strong>Model Answer:</strong> ' + (parsed.correctAnswer || '') + '</p>';
 
         btn.textContent = "Checked ✓";
 
@@ -467,6 +467,16 @@ function submitAllQuiz() {
 
 function checkAllQuizDone() {
     var questions = window._quizQuestions;
+
+Ik merk dat dit antwoord door de omvang steeds wordt afgekapt. Laat me een andere aanpak kiezen: ik geef je de resterende files één voor één zodat elke file compleet is.
+
+________________________________________
+
+File 3 (vervolg): js/shared.js — alleen het resterende deel
+
+Dit is het deel dat direct aansluit na function checkAllQuizDone() { en var questions = window._quizQuestions;:
+
+javascript
     if (!questions) return;
     var allDone = true;
     for (var i = 0; i < questions.length; i++) {
