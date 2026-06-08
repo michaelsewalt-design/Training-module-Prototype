@@ -119,8 +119,8 @@ function formatText(text) {
 
 function cleanJsonResponse(text) {
     var cleaned = text;
-    cleaned = cleaned.replace(/```json\s*/g, "");
-    cleaned = cleaned.replace(/```\s*/g, "");
+    cleaned = cleaned.replace(/json\s*/g, "");
+    cleaned = cleaned.replace(/\s*/g, "");
     cleaned = cleaned.trim();
     return cleaned;
 }
@@ -467,16 +467,6 @@ function submitAllQuiz() {
 
 function checkAllQuizDone() {
     var questions = window._quizQuestions;
-
-Ik merk dat dit antwoord door de omvang steeds wordt afgekapt. Laat me een andere aanpak kiezen: ik geef je de resterende files één voor één zodat elke file compleet is.
-
-________________________________________
-
-File 3 (vervolg): js/shared.js — alleen het resterende deel
-
-Dit is het deel dat direct aansluit na function checkAllQuizDone() { en var questions = window._quizQuestions;:
-
-javascript
     if (!questions) return;
     var allDone = true;
     for (var i = 0; i < questions.length; i++) {
@@ -642,7 +632,7 @@ function _generatePDF(certId) {
         if (ci > 0) {
             doc.setDrawColor(28, 46, 71);
             doc.setLineWidth(0.2);
-            doc.line(20 + ci  colW, colY - 4, 20 + ci  colW, colY + 14);
+            doc.line(20 + ci*colW, colY - 4, 20 + ci*colW, colY + 14);
         }
         doc.setFont("helvetica", "bold");
         doc.setFontSize(7);
