@@ -196,7 +196,7 @@ body::before {
 </head>
 <body>
 
-<a href="/logout" class="logout-link">↩ Logout</a>
+<a href="" class="logout-link" onclick="sessionStorage.removeItem('ct_token'); window.location.href='/login.html'; return false;">Logout</a>
 
 <div class="page">
 
