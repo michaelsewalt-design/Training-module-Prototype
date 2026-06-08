@@ -1,145 +1,248 @@
 /* ═══════════════════════════════════════
-COMPLIANCE TRAINING — SHARED JS
-═══════════════════════════════════════ */
+   COMPLIANCE TRAINING — SHARED JS
+   ═══════════════════════════════════════ */
 
 // ─── AUTH ──────────────────────────────
 function getToken() {
-return sessionStorage.getItem('ct_token');
+    return sessionStorage.getItem("ct_token");
 }
 
 function requireAuth() {
-const token = getToken();
-if (!token) {
-window.location.href = '/login.html';
-return false;
-}
-return true;
-}
-
-async function verifyAuth() {
-const token = getToken();
-if (!token) {
-window.location.href = '/login.html';
-return false;
-}
-try {
-const resp = await fetch('/api/auth', {
-method: 'GET',
-headers: { 'Authorization': `Bearer ${token}` }
-});
-if (!resp.ok) {
-sessionStorage.removeItem('ct_token');
-window.location.href = '/login.html';
-return false;
-}
-return true;
-} catch {
-return true; // Allow offline-ish usage if token exists
-}
+    var token = getToken();
+    if (!token) {
+        window.location.href = "/login.html";
+        return false;
+    }
+    return true;
 }
 
 function logout() {
-sessionStorage.removeItem('ct_token');
-window.location.href = '/login.html';
+    sessionStorage.removeItem("ct_token");
+    window.location.href = "/login.html";
 }
 
 // ─── API CALLS ─────────────────────────
-async function callClaude(messages, systemPrompt, maxTokens) {
-const token = getToken();
-if (!token) throw new Error('Not authenticated');
+function callClaude(messages, systemPrompt, maxTokens) {
+    var token = getToken();
+    if (!token) {
+        return Promise.reject(new Error("Not authenticated"));
+    }
 
-const resp = await fetch('/api/claude', {
-method: 'POST',
-headers: {
-'Content-Type': 'application/json',
-'Authorization': `Bearer ${token}`
-},
-body: JSON.stringify({
-messages,
-system: systemPrompt,
-max_tokens: maxTokens || 1024,
-model: 'claude-sonnet-4-20250514'
-})
-});
-
-if (resp.status === 401) {
-sessionStorage.removeItem('ct_token');
-window.location.href = '/login.html';
-throw new Error('Session expired');
+    return fetch("/api/claude", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({
+            messages: messages,
+            system: systemPrompt,
+            max_tokens: maxTokens || 1024,
+            model: "claude-sonnet-4-20250514"
+        })
+    }).then(function(resp) {
+        if (resp.status === 401) {
+            sessionStorage.removeItem("ct_token");
+            window.location.href = "/login.html";
+            throw new Error("Session expired");
+        }
+        if (!resp.ok) {
+            return resp.json().then(function(err) {
+                throw new Error(err.error || err.details || "API error: " + resp.status);
+            });
+        }
+        return resp.json();
+    }).then(function(data) {
+        var text = "";
+        if (data.content && data.content[0] && data.content[0].text) {
+            text = data.content[0].text;
+        }
+        return text;
+    });
 }
 
-if (!resp.ok) {
-const err = await resp.json().catch(() => ({}));
-throw new Error(err.error || err.details || `API error: ${resp.status}`);
-}
+function loadConfig() {
+    var token = getToken();
+    if (!token) return Promise.resolve(null);
 
-const data = await resp.json();
-return data.content?.[0]?.text || '';
-}
-
-async function loadConfig() {
-const token = getToken();
-if (!token) return null;
-
-try {
-const resp = await fetch('/api/config', {
-headers: { 'Authorization': `Bearer ${token}` }
-});
-if (!resp.ok) return null;
-return await resp.json();
-} catch {
-return null;
-}
+    return fetch("/api/config", {
+        headers: { "Authorization": "Bearer " + token }
+    }).then(function(resp) {
+        if (!resp.ok) return null;
+        return resp.json();
+    }).catch(function() {
+        return null;
+    });
 }
 
 // ─── UI HELPERS ────────────────────────
 function toggleAcc(id) {
-document.getElementById(id).classList.toggle('open');
+    document.getElementById(id).classList.toggle("open");
 }
 
 function autoResize(el) {
-el.style.height = 'auto';
-el.style.height = el.scrollHeight + 'px';
+    el.style.height = "auto";
+    el.style.height = el.scrollHeight + "px";
 }
 
 function handleChatKey(event) {
-if (event.key === 'Enter' && !event.shiftKey) {
-event.preventDefault();
-sendChat();
-}
+    if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        sendChat();
+    }
 }
 
 function formatText(text) {
-return text
-.replace(/\*\*(.*?)\*\*/g, '$1')
-.replace(/\*(.*?)\*/g, '$1')
-.split('\n\n')
-.map(p => `
+    var html = text
+        .replace(/\\(.?)\\*/g, "<strong>$1</strong>")
+        .replace(/\(.?)\*/g, "<em>$1</em>");
 
-${p.replace(/\n/g, '
-')}
-
-`)
-.join('');
+    var paragraphs = html.split("\n\n");
+    var result = "";
+    for (var i = 0; i < paragraphs.length; i++) {
+        result += "<p>" + paragraphs[i].replace(/\n/g, "<br>") + "</p>";
+    }
+    return result;
 }
+
 // ─── SHARED STATE ──────────────────────
-let selectedLevel = null;
-let selectedStrictness = 'normal';
-let agent1Id = '';
-let agent2Id = '';
-let chatHistory = [];
-let stepsCompleted = [false, false, false, false, false];
-let currentTab = 'theory';
-let activeScenario = null;
-let quizResults = [];
+var selectedLevel = null;
+var selectedStrictness = "normal";
+var agent1Id = "";
+var agent2Id = "";
+var chatHistory = [];
+var stepsCompleted = [false, false, false, false, false];
+var currentTab = "theory";
+var activeScenario = null;
+var quizResults = [];
 
 // ─── LEVEL SELECTION ───────────────────
 function selectLevel(btn) {
-document.querySelectorAll('#setupScreen .level-btn').forEach(b => b.classList.remove('selected'));
-btn.classList.add('selected');
-selectedLevel = btn.dataset.level;
+    var buttons = document.querySelectorAll("setupScreen .level-grid .level-btn");
+    for (var i = 0; i < buttons.length; i++) {
+        buttons[i].classList.remove("selected");
+    }
+    btn.classList.add("selected");
+    selectedLevel = btn.getAttribute("data-level");
 
-// Show strictness card
-const strictCard = document.getElementById('strictnessCard');
-if (strictCard) {
-strictCard.style
+    // Show strictness card
+    var strictCard = document.getElementById("strictnessCard");
+    if (strictCard) {
+        strictCard.style.display = "block";
+    }
+
+    checkStartReady();
+}
+
+// ─── STRICTNESS SELECTION ──────────────
+function selectStrictness(btn) {
+    var buttons = document.querySelectorAll(".strictness-btn");
+    for (var i = 0; i < buttons.length; i++) {
+        buttons[i].classList.remove("selected");
+    }
+    btn.classList.add("selected");
+    selectedStrictness = btn.getAttribute("data-strictness");
+
+    checkStartReady();
+}
+
+// ─── START READY CHECK ─────────────────
+function checkStartReady() {
+    var startBtn = document.getElementById("startBtn");
+    if (startBtn) {
+        startBtn.disabled = !selectedLevel;
+    }
+}
+
+// ─── NAVIGATION ────────────────────────
+function showTab(name) {
+    var tabs = document.querySelectorAll(".tab-content");
+    for (var i = 0; i < tabs.length; i++) {
+        tabs[i].classList.remove("active");
+    }
+
+    var navBtns = document.querySelectorAll(".nav-btn");
+    for (var j = 0; j < navBtns.length; j++) {
+        navBtns[j].classList.remove("active");
+    }
+
+    var steps = document.querySelectorAll(".step");
+    for (var k = 0; k < steps.length; k++) {
+        steps[k].classList.remove("active");
+    }
+
+    var tabEl = document.getElementById("tab-" + name);
+    if (tabEl) tabEl.classList.add("active");
+
+    var navEl = document.getElementById("nav-" + name);
+    if (navEl) navEl.classList.add("active");
+
+    var stepMap = {
+        theory: "step1",
+        examples: "step2",
+        scenario: "step3",
+        chat: "step4",
+        quiz: "step5"
+    };
+
+    var stepEl = document.getElementById(stepMap[name]);
+    if (stepEl) stepEl.classList.add("active");
+
+    currentTab = name;
+    window.scrollTo(0, 0);
+}
+
+function completeStep(n) {
+    stepsCompleted[n - 1] = true;
+    var stepEl = document.getElementById("step" + n);
+    if (stepEl) stepEl.classList.add("done");
+
+    var circleEl = document.getElementById("sc" + n);
+    if (circleEl) circleEl.textContent = "\u2713";
+}
+
+function resetTraining() {
+    if (!confirm("Restart training? Your progress will be lost.")) return;
+
+    document.getElementById("setupScreen").style.display = "flex";
+    document.getElementById("trainingScreen").classList.remove("visible");
+
+    chatHistory = [];
+    stepsCompleted = [false, false, false, false, false];
+    quizResults = [];
+
+    var steps = document.querySelectorAll(".step");
+    for (var i = 0; i < steps.length; i++) {
+        steps[i].classList.remove("done");
+        steps[i].classList.remove("active");
+    }
+
+    for (var j = 1; j <= 5; j++) {
+        var sc = document.getElementById("sc" + j);
+        if (sc) sc.textContent = j;
+    }
+
+    document.getElementById("step1").classList.add("active");
+    showTab("theory");
+}
+
+// ─── CHAT RENDER ───────────────────────
+function renderChat() {
+    var el = document.getElementById("chatHistory");
+    if (chatHistory.length === 0) {
+        el.innerHTML = '<div class="empty-msg">No messages yet. Ask a question or choose a suggestion below.</div>';
+        return;
+    }
+
+    var html = "";
+    for (var i = 0; i < chatHistory.length; i++) {
+        var m = chatHistory[i];
+        var roleLabel = m.role === "user" ? "You" : "AI Coach";
+        html += '<div class="msg ' + m.role + '">';
+        html += '<div class="msg-role">' + roleLabel + '</div>';
+        html += '<div class="msg-bubble">' + formatText(m.content) + '</div>';
+        html += '</div>';
+    }
+    el.innerHTML = html;
+    el.scrollTop = el.scrollHeight;
+}
