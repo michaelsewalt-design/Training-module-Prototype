@@ -13,12 +13,33 @@
             padding: 0;
         }
 
+        :root {
+            --bg:       07101e;
+            --surface:  0d1a2e;
+            --surface2: 132035;
+            --border:   1c2e47;
+            --gold:     c9a84c;
+            --gold2:    e8c97a;
+            --text:     dce8f5;
+            --muted:    4e6a88;
+            --success:  4ade80;
+            --danger:   f87171;
+        }
+
         html, body {
             height: 100%;
-            background-color: 07101e;
-            color: dce8f5;
+            background-color: var(--bg);
+            color: var(--text);
             font-family: 'Inter', sans-serif;
             overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed; inset: 0; pointer-events: none; z-index: 0;
+            background:
+                radial-gradient(ellipse 90% 50% at 0% 0%, rgba(58,123,213,0.07) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 100% 100%, rgba(201,168,76,0.06) 0%, transparent 60%);
         }
 
         .login-page {
@@ -42,7 +63,7 @@
         .login-badge {
             display: inline-block;
             border: 1px solid rgba(201,168,76,0.4);
-            color: c9a84c;
+            color: var(--gold);
             font-family: 'JetBrains Mono', monospace;
             font-size: 10px;
             letter-spacing: 0.2em;
@@ -56,26 +77,26 @@
             font-family: 'Playfair Display', serif;
             font-size: 32px;
             font-weight: 700;
-            color: dce8f5;
+            color: var(--text);
             line-height: 1.15;
             margin-bottom: 12px;
         }
 
         .login-brand h1 span {
             font-style: italic;
-            color: c9a84c;
+            color: var(--gold);
         }
 
         .login-brand p {
             font-size: 13px;
-            color: 4e6a88;
+            color: var(--muted);
             line-height: 1.7;
         }
 
         .login-box {
             width: 100%;
-            background-color: 0d1a2e;
-            border: 1px solid 1c2e47;
+            background-color: var(--surface);
+            border: 1px solid var(--border);
             border-radius: 14px;
             padding: 24px;
             margin-bottom: 28px;
@@ -86,7 +107,7 @@
             font-size: 10px;
             letter-spacing: 0.18em;
             text-transform: uppercase;
-            color: c9a84c;
+            color: var(--gold);
             margin-bottom: 16px;
         }
 
@@ -97,17 +118,17 @@
         .login-field label {
             display: block;
             font-size: 12px;
-            color: 4e6a88;
+            color: var(--muted);
             margin-bottom: 6px;
         }
 
         .login-field input {
             display: block;
             width: 100%;
-            background-color: 07101e;
-            border: 1px solid 1c2e47;
+            background-color: var(--bg);
+            border: 1px solid var(--border);
             border-radius: 8px;
-            color: dce8f5;
+            color: var(--text);
             font-family: 'Inter', sans-serif;
             font-size: 14px;
             padding: 12px 14px;
@@ -118,11 +139,11 @@
         }
 
         .login-field input:focus {
-            border-color: c9a84c;
+            border-color: var(--gold);
         }
 
         .login-field input::placeholder {
-            color: 4e6a88;
+            color: var(--muted);
         }
 
         .login-error {
@@ -131,7 +152,7 @@
             border-radius: 8px;
             padding: 10px 14px;
             font-size: 12px;
-            color: f87171;
+            color: var(--danger);
             margin-bottom: 12px;
             display: none;
             line-height: 1.5;
@@ -143,7 +164,7 @@
             border-radius: 8px;
             padding: 12px 14px;
             font-size: 12px;
-            color: f87171;
+            color: var(--danger);
             text-align: center;
             margin-bottom: 12px;
             display: none;
@@ -154,8 +175,8 @@
             display: block;
             width: 100%;
             padding: 14px;
-            background-color: c9a84c;
-            color: 07101e;
+            background-color: var(--gold);
+            color: var(--bg);
             border: none;
             border-radius: 10px;
             font-family: 'Inter', sans-serif;
@@ -178,18 +199,25 @@
 
         .login-attempts {
             font-size: 11px;
-            color: 4e6a88;
+            color: var(--muted);
             text-align: center;
             margin-top: 12px;
         }
 
         .login-footer {
             font-size: 11px;
-            color: 4e6a88;
+            color: var(--muted);
             text-align: center;
             font-family: 'JetBrains Mono', monospace;
             letter-spacing: 0.05em;
         }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .login-brand { animation: fadeUp 0.4s ease both; }
+        .login-box   { animation: fadeUp 0.4s 0.1s ease both; }
     </style>
 </head>
 <body>
@@ -223,7 +251,7 @@
             <div class="login-attempts" id="attemptsInfo"></div>
         </div>
 
-        <div class="login-footer">Compliance Training Platform</div>
+        <div class="login-footer">© Compliance Training Platform</div>
 
     </div>
 
@@ -238,31 +266,22 @@
             function readLockout() {
                 try {
                     var s = localStorage.getItem("ct_lockout");
-                    if (!s) {
-                        return { attempts: 0, lockedUntil: 0 };
-                    }
+                    if (!s) return { attempts: 0, lockedUntil: 0 };
                     var d = JSON.parse(s);
-                    return {
-                        attempts: d.attempts || 0,
-                        lockedUntil: d.lockedUntil || 0
-                    };
+                    return { attempts: d.attempts || 0, lockedUntil: d.lockedUntil || 0 };
                 } catch(e) {
                     return { attempts: 0, lockedUntil: 0 };
                 }
             }
 
             function writeLockout(att, until) {
-                localStorage.setItem("ct_lockout", JSON.stringify({
-                    attempts: att,
-                    lockedUntil: until
-                }));
+                localStorage.setItem("ct_lockout", JSON.stringify({ attempts: att, lockedUntil: until }));
+
             }
 
             function isLocked() {
                 var d = readLockout();
-                if (d.lockedUntil > Date.now()) {
-                    return true;
-                }
+                if (d.lockedUntil > Date.now()) return true;
                 if (d.lockedUntil > 0 && d.lockedUntil <= Date.now()) {
                     writeLockout(0, 0);
                 }
@@ -280,11 +299,7 @@
                     lockDiv.style.display = "block";
                     btn.disabled = true;
                     pw.disabled = true;
-
-                    if (timerRef) {
-                        clearInterval(timerRef);
-                    }
-
+                    if (timerRef) clearInterval(timerRef);
                     var doTick = function() {
                         var left = d.lockedUntil - Date.now();
                         if (left <= 0) {
@@ -299,18 +314,14 @@
                         }
                         var m = Math.floor(left / 60000);
                         var s = Math.floor((left % 60000) / 1000);
-                        var ss = s < 10 ? "0" + s : "" + s;
-                        document.getElementById("lockoutTimer").textContent = m + ":" + ss;
+                        document.getElementById("lockoutTimer").textContent = m + ":" + (s < 10 ? "0" : "") + s;
                     };
-
                     doTick();
                     timerRef = setInterval(doTick, 1000);
-
                 } else {
                     lockDiv.style.display = "none";
                     btn.disabled = false;
                     pw.disabled = false;
-
                     if (d.attempts > 0 && d.attempts < MAX_ATTEMPTS) {
                         var r = MAX_ATTEMPTS - d.attempts;
                         info.textContent = r + (r === 1 ? " attempt" : " attempts") + " remaining before lockout.";
@@ -322,43 +333,25 @@
 
             function doLogin(evt) {
                 evt.preventDefault();
-                evt.stopPropagation();
-
-                if (isLocked()) {
-                    refreshUI();
-                    return false;
-                }
-
+                if (isLocked()) { refreshUI(); return false; }
                 var pwInput = document.getElementById("passwordInput");
                 var errDiv = document.getElementById("errorMsg");
                 var btn = document.getElementById("loginBtn");
                 var passVal = pwInput.value;
-
-                if (!passVal || passVal.length === 0) {
-                    return false;
-                }
+                if (!passVal || passVal.length === 0) return false;
 
                 btn.disabled = true;
                 btn.textContent = "Verifying...";
                 errDiv.style.display = "none";
 
-                var payload = JSON.stringify({ password: passVal });
-
                 var xhr = new XMLHttpRequest();
                 xhr.open("POST", "/api/auth", true);
                 xhr.setRequestHeader("Content-Type", "application/json");
-
                 xhr.onreadystatechange = function() {
-                    if (xhr.readyState !== 4) {
-                        return;
-                    }
-
+                    if (xhr.readyState !== 4) return;
                     var result;
-                    try {
-                        result = JSON.parse(xhr.responseText);
-                    } catch(parseErr) {
-                        result = { success: false, message: "Server error. Status: " + xhr.status };
-                    }
+                    try { result = JSON.parse(xhr.responseText); }
+                    catch(e) { result = { success: false, message: "Server error." }; }
 
                     if (xhr.status === 200 && result.success === true) {
                         writeLockout(0, 0);
@@ -366,49 +359,37 @@
                         window.location.href = "/index.html";
                         return;
                     }
-
                     var ld = readLockout();
                     var newAtt = ld.attempts + 1;
-
                     if (newAtt >= MAX_ATTEMPTS) {
                         writeLockout(newAtt, Date.now() + LOCKOUT_MS);
                     } else {
                         writeLockout(newAtt, 0);
                     }
-
                     errDiv.textContent = result.message || "Invalid password.";
                     errDiv.style.display = "block";
-
                     btn.disabled = false;
                     btn.textContent = "Login";
-
                     refreshUI();
                 };
-
                 xhr.onerror = function() {
                     errDiv.textContent = "Connection error. Please try again.";
                     errDiv.style.display = "block";
                     btn.disabled = false;
                     btn.textContent = "Login";
                 };
-
-                xhr.send(payload);
+                xhr.send(JSON.stringify({ password: passVal }));
                 return false;
             }
 
             function checkExistingToken() {
                 var tok = sessionStorage.getItem("ct_token");
-                if (!tok) {
-                    return false;
-                }
-
+                if (!tok) return false;
                 var checkXhr = new XMLHttpRequest();
                 checkXhr.open("GET", "/api/auth", true);
                 checkXhr.setRequestHeader("Authorization", "Bearer " + tok);
                 checkXhr.onreadystatechange = function() {
-                    if (checkXhr.readyState !== 4) {
-                        return;
-                    }
+                    if (checkXhr.readyState !== 4) return;
                     if (checkXhr.status === 200) {
                         window.location.href = "/index.html";
                     } else {
@@ -416,30 +397,19 @@
                         refreshUI();
                     }
                 };
-                checkXhr.onerror = function() {
-                    window.location.href = "/index.html";
-                };
+                checkXhr.onerror = function() {};
                 checkXhr.send();
                 return true;
             }
 
             function init() {
-                if (checkExistingToken()) {
-                    return;
-                }
-
+                if (checkExistingToken()) return;
                 refreshUI();
-
                 var form = document.getElementById("loginForm");
-                if (form) {
-                    form.onsubmit = doLogin;
-                }
-
+                if (form) form.onsubmit = doLogin;
                 var pwField = document.getElementById("passwordInput");
                 if (pwField && !pwField.disabled) {
-                    setTimeout(function() {
-                        pwField.focus();
-                    }, 100);
+                    setTimeout(function() { pwField.focus(); }, 100);
                 }
             }
 
@@ -448,9 +418,7 @@
             } else {
                 init();
             }
-
         })();
     </script>
-
 </body>
 </html>

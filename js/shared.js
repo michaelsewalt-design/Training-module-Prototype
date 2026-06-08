@@ -95,12 +95,8 @@ function handleChatKey(event) {
 function formatText(text) {
     if (!text) return "";
     var html = text;
-    // Bold: **text**
-    html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-
-    // Italic: *text*
-    html = html.replace(/\*([^*]+)\*/g, "<em>$1</em>");
-    // Paragraphs
+    html = html.replace(/\\([^]+)\\*/g, "<strong>$1</strong>");
+    html = html.replace(/\([^]+)\*/g, "<em>$1</em>");
     var paragraphs = html.split("\n\n");
     var result = "";
     for (var i = 0; i < paragraphs.length; i++) {
@@ -112,10 +108,9 @@ function formatText(text) {
 }
 
 function cleanJsonResponse(text) {
-    // Remove markdown code fences that Claude sometimes adds
     var cleaned = text;
-    cleaned = cleaned.replace(/```json\s*/g, "");
-    cleaned = cleaned.replace(/```\s*/g, "");
+    cleaned = cleaned.replace(/json\s*/g, "");
+    cleaned = cleaned.replace(/\s*/g, "");
     cleaned = cleaned.trim();
     return cleaned;
 }
@@ -133,15 +128,18 @@ var quizResults = [];
 
 // ─── LEVEL SELECTION ───────────────────
 function selectLevel(btn) {
-    // Clear all level buttons in the setup screen
-    var buttons = document.querySelectorAll("#setupScreen .level-grid .level-btn");
+    var buttons = document.querySelectorAll("setupScreen .level-grid:first-of-type .level-btn");
+    if (buttons.length === 0) {
+        buttons = document.querySelectorAll("setupScreen .level-btn[data-level]");
+    }
     for (var i = 0; i < buttons.length; i++) {
-        buttons[i].classList.remove("selected");
+        if (buttons[i].hasAttribute("data-level")) {
+            buttons[i].classList.remove("selected");
+        }
     }
     btn.classList.add("selected");
     selectedLevel = btn.getAttribute("data-level");
 
-    // Show strictness card
     var strictCard = document.getElementById("strictnessCard");
     if (strictCard) {
         strictCard.style.display = "block";
@@ -158,7 +156,6 @@ function selectStrictness(btn) {
     }
     btn.classList.add("selected");
     selectedStrictness = btn.getAttribute("data-strictness");
-
     checkStartReady();
 }
 
@@ -226,6 +223,8 @@ function resetTraining() {
     chatHistory = [];
     stepsCompleted = [false, false, false, false, false];
     quizResults = [];
+    window._examples = null;
+    window._quizQuestions = null;
 
     var steps = document.querySelectorAll(".step");
     for (var i = 0; i < steps.length; i++) {
@@ -261,4 +260,398 @@ function renderChat() {
     }
     el.innerHTML = html;
     el.scrollTop = el.scrollHeight;
+}
+
+// ─── SEND CHAT (shared implementation) ─
+function sendChat() {
+    var input = document.getElementById("chatInput");
+    var msg = input.value.trim();
+    if (!msg) return;
+
+    input.value = "";
+    input.style.height = "auto";
+
+    chatHistory.push({ role: "user", content: msg });
+    renderChat();
+
+    var btn = document.getElementById("sendBtn");
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>';
+
+    var histEl = document.getElementById("chatHistory");
+    var loadEl = document.createElement("div");
+    loadEl.className = "msg assistant";
+    loadEl.innerHTML = '<div class="msg-role">AI Coach</div><div class="msg-bubble"><span class="spinner"></span> Thinking...</div>';
+    histEl.appendChild(loadEl);
+    histEl.scrollTop = histEl.scrollHeight;
+
+    var systemPrompt = "";
+    if (typeof SYSTEM_PROMPTS !== "undefined" && selectedLevel && SYSTEM_PROMPTS[selectedLevel]) {
+        systemPrompt = SYSTEM_PROMPTS[selectedLevel];
+    }
+
+    callClaude(chatHistory, systemPrompt, 1024).then(function(reply) {
+        chatHistory.push({ role: "assistant", content: reply });
+        btn.disabled = false;
+        btn.innerHTML = "➤";
+        renderChat();
+    }).catch(function(err) {
+        chatHistory.push({ role: "assistant", content: "⚠ Error: " + err.message });
+        btn.disabled = false;
+        btn.innerHTML = "➤";
+        renderChat();
+    });
+}
+
+// ─── QUIZ ENGINE ───────────────────────
+function loadQuiz() {
+    var container = document.getElementById("quizQuestions");
+    container.innerHTML = '<div class="empty-msg"><span class="spinner"></span> Generating assessment questions…</div>';
+
+    var moduleLabel = typeof MODULE !== "undefined" ? MODULE.toUpperCase() : "COMPLIANCE";
+    var levelLabel = typeof LEVEL_LABELS !== "undefined" && selectedLevel ? LEVEL_LABELS[selectedLevel] : selectedLevel;
+
+    var prompt = 'You are a ' + moduleLabel + ' compliance trainer. Create EXACTLY 3 assessment questions for a ' + levelLabel + '.\n\n'
+- 'Create:\n- 2 scenario-based questions (practical, realistic situations)\n- 1 knowledge question (testing regulatory understanding)\n\n'
+- 'Return STRICT JSON only, no markdown:\n[\n  {\n    "q": "Full question text",\n    "hint": "Brief hint for the answer field placeholder"\n  }\n]';
+
+    callClaude(
+        [{ role: "user", content: prompt }],
+        "You are a precise compliance trainer. Respond only with the requested JSON array.",
+        1000
+    ).then(function(reply) {
+        var clean = cleanJsonResponse(reply);
+        var questions = JSON.parse(clean);
+        window._quizQuestions = questions;
+        renderQuizQuestions(questions);
+    }).catch(function(err) {
+        container.innerHTML = '<div class="empty-msg">⚠ Failed to generate questions: ' + err.message + '</div>';
+    });
+}
+
+function renderQuizQuestions(questions) {
+    var container = document.getElementById("quizQuestions");
+    container.innerHTML = "";
+    quizResults = [];
+
+    for (var i = 0; i < questions.length; i++) {
+        var q = questions[i];
+        var el = document.createElement("div");
+        el.className = "quiz-q";
+        el.id = "qq" + i;
+        el.innerHTML = '<div class="quiz-q-header">'
+- '<span class="quiz-num">Q' + (i + 1) + '</span>'
+- '<div class="quiz-q-text">' + q.q + '</div>'
+- '</div>'
+- '<div class="quiz-q-body">'
+- '<textarea class="quiz-textarea" id="qa' + i + '" placeholder="' + (q.hint || "Type your answer...") + '" rows="3"></textarea>'
+- '<button class="btn-check" id="qbtn' + i + '" onclick="checkAnswer(' + i + ')">Check Answer</button>'
+- '<div class="quiz-feedback" id="qfb' + i + '">'
+- '<div class="fb-label" id="qfblabel' + i + '">Feedback</div>'
+- '<p id="qfbtext' + i + '"></p>'
+- '</div>'
+- '</div>';
+        container.appendChild(el);
+    }
+
+    var submitWrap = document.getElementById("submitWrap");
+    if (submitWrap) submitWrap.style.display = "flex";
+}
+
+function checkAnswer(idx) {
+    var answer = document.getElementById("qa" + idx).value.trim();
+    if (!answer) { alert("Please enter an answer first."); return; }
+
+    var questions = window._quizQuestions;
+    if (!questions || !questions[idx]) return;
+
+    var btn = document.getElementById("qbtn" + idx);
+    btn.disabled = true;
+    btn.textContent = "Evaluating…";
+
+    var moduleLabel = typeof MODULE !== "undefined" ? MODULE.toUpperCase() : "COMPLIANCE";
+    var levelLabel = typeof LEVEL_LABELS !== "undefined" && selectedLevel ? LEVEL_LABELS[selectedLevel] : selectedLevel;
+    var strictnessInstr = typeof STRICTNESS_INSTRUCTIONS !== "undefined" && selectedStrictness ? STRICTNESS_INSTRUCTIONS[selectedStrictness] : "";
+
+    var prompt = 'You are a ' + moduleLabel + ' compliance trainer. Evaluate the following answer from a ' + levelLabel + '.\n\n'
+- 'STRICTNESS LEVEL:\n' + strictnessInstr + '\n\n'
+- 'Question: ' + questions[idx].q + '\n\n'
+- 'Trainee answer: ' + answer + '\n\n'
+- 'Provide your evaluation in this exact JSON format (nothing else, no markdown):\n'
+- '{\n  "score": "goed|gedeeltelijk|onvoldoende",\n'
+- '  "feedback": "Max 4 sentences in English. Start with what was good, then areas for improvement.",\n'
+- '  "correctAnswer": "The ideal complete answer, referencing relevant articles where appropriate, in English."\n}';
+
+    callClaude(
+        [{ role: "user", content: prompt }],
+        "You are a precise compliance trainer. Respond only with the requested JSON object.",
+        800
+    ).then(function(reply) {
+        var clean = cleanJsonResponse(reply);
+        var parsed;
+        try {
+            parsed = JSON.parse(clean);
+        } catch(e) {
+            parsed = { score: "gedeeltelijk", feedback: reply, correctAnswer: "" };
+        }
+
+        quizResults[idx] = parsed.score;
+
+        var scoreMap = { goed: "good", gedeeltelijk: "partial", onvoldoende: "poor" };
+        var labelMap = { goed: "✓ Well Answered", gedeeltelijk: "◑ Partially Correct", onvoldoende: "✗ Needs Improvement" };
+
+        var fbEl = document.getElementById("qfb" + idx);
+        fbEl.className = "quiz-feedback visible " + (scoreMap[parsed.score] || "partial");
+        document.getElementById("qfblabel" + idx).textContent = labelMap[parsed.score] || "Feedback";
+        document.getElementById("qfbtext" + idx).innerHTML =
+            '<p><strong>Feedback:</strong> ' + (parsed.feedback || '') + '</p>'
+- '<p style="margin-top:8px"><strong>Model Answer:</strong> ' + (parsed.correctAnswer || '') + '</p>';
+
+        btn.textContent = "Checked ✓";
+
+        checkAllQuizDone();
+    }).catch(function(err) {
+        document.getElementById("qfbtext" + idx).textContent = "Error: " + err.message;
+        document.getElementById("qfb" + idx).className = "quiz-feedback visible partial";
+        btn.disabled = false;
+        btn.textContent = "Try Again";
+    });
+}
+
+function submitAllQuiz() {
+    var questions = window._quizQuestions;
+    if (!questions) return;
+
+    var pending = [];
+    for (var i = 0; i < questions.length; i++) {
+        var fb = document.getElementById("qfb" + i);
+        if (!fb || !fb.classList.contains("visible")) {
+            pending.push(i);
+        }
+    }
+
+    if (pending.length === 0) return;
+
+    function processNext(idx) {
+        if (idx >= pending.length) return;
+        var answer = document.getElementById("qa" + pending[idx]).value.trim();
+        if (!answer) {
+            alert("Please fill in answer for question " + (pending[idx] + 1));
+            return;
+        }
+        // Wait for checkAnswer to complete, then process next
+        var origBtn = document.getElementById("qbtn" + pending[idx]);
+        checkAnswer(pending[idx]);
+
+        // Poll for completion
+        var poll = setInterval(function() {
+            if (origBtn.textContent.indexOf("✓") !== -1 || origBtn.textContent === "Try Again") {
+                clearInterval(poll);
+                processNext(idx + 1);
+            }
+        }, 500);
+    }
+
+    processNext(0);
+}
+
+function checkAllQuizDone() {
+    var questions = window._quizQuestions;
+
+Ik merk dat dit antwoord door de omvang steeds wordt afgekapt. Laat me een andere aanpak kiezen: ik geef je de resterende files één voor één zodat elke file compleet is.
+
+________________________________________
+
+File 3 (vervolg): js/shared.js — alleen het resterende deel
+
+Dit is het deel dat direct aansluit na function checkAllQuizDone() { en var questions = window._quizQuestions;:
+
+javascript
+    if (!questions) return;
+    var allDone = true;
+    for (var i = 0; i < questions.length; i++) {
+        var fb = document.getElementById("qfb" + i);
+        if (!fb || !fb.classList.contains("visible")) {
+            allDone = false;
+            break;
+        }
+    }
+
+    if (allDone) {
+        completeStep(5);
+        var certBanner = document.getElementById("certBanner");
+        if (certBanner) certBanner.classList.add("visible");
+        var submitWrap = document.getElementById("submitWrap");
+        if (submitWrap) submitWrap.style.display = "none";
+    }
+}
+
+// ─── CERTIFICATE GENERATION ────────────
+function generateCertificate() {
+    var popup = document.getElementById("popupOverlay");
+    var content = document.getElementById("popupContent");
+
+    var moduleLabel = typeof MODULE !== "undefined" ? MODULE.toUpperCase() : "COMPLIANCE";
+    var levelLabel = typeof LEVEL_LABELS !== "undefined" && selectedLevel ? LEVEL_LABELS[selectedLevel] : selectedLevel;
+    var today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+    var certId = moduleLabel + "-" + (selectedLevel || "").toUpperCase() + "-" + Date.now() + "-" + Math.floor(Math.random() * 100000);
+
+    var scoreCount = { goed: 0, gedeeltelijk: 0, onvoldoende: 0 };
+    for (var i = 0; i < quizResults.length; i++) {
+        if (scoreCount.hasOwnProperty(quizResults[i])) {
+            scoreCount[quizResults[i]]++;
+        }
+    }
+
+    content.innerHTML = '<h2>🏆 Certificate of Completion</h2>'
+- '<p><strong>' + moduleLabel + ' Compliance Training</strong></p>'
+- '<p>Level: ' + (levelLabel || "") + '</p>'
+- '<p>Date: ' + today + '</p>'
+- '<p>Results: ' + scoreCount.goed + ' correct · ' + scoreCount.gedeeltelijk + ' partial · ' + scoreCount.onvoldoende + ' insufficient</p>'
+- '<p style="font-size:11px;color:var(--muted);margin-top:4px">Certificate ID: ' + certId + '</p>'
+- '<div class="popup-buttons">'
+- '<button class="btn-primary" onclick="downloadCertificatePDF(\'' + certId + '\')">Download PDF</button>'
+- '<button class="btn-secondary" onclick="closePopup()">Close</button>'
+- '</div>';
+
+    popup.classList.remove("hidden");
+}
+
+function closePopup() {
+    document.getElementById("popupOverlay").classList.add("hidden");
+}
+
+function downloadCertificatePDF(certId) {
+    if (typeof window.jspdf === "undefined") {
+        // Load jsPDF dynamically
+        var script = document.createElement("script");
+        script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+        script.onload = function() { _generatePDF(certId); };
+        document.head.appendChild(script);
+    } else {
+        _generatePDF(certId);
+    }
+}
+
+function _generatePDF(certId) {
+    var jsPDF = window.jspdf.jsPDF;
+    if (!jsPDF) { alert("PDF library not loaded"); return; }
+
+    var doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    var W = 297, H = 210, cx = W / 2;
+
+    var moduleLabel = typeof MODULE !== "undefined" ? MODULE.toUpperCase() : "COMPLIANCE";
+    var levelLabel = typeof LEVEL_LABELS !== "undefined" && selectedLevel ? LEVEL_LABELS[selectedLevel] : selectedLevel;
+    var today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+
+    // Background
+    doc.setFillColor(7, 16, 30);
+    doc.rect(0, 0, W, H, "F");
+
+    // Inner panel
+    doc.setFillColor(13, 26, 46);
+    doc.roundedRect(8, 8, W - 16, H - 16, 4, 4, "F");
+
+    // Gold border
+    doc.setDrawColor(201, 168, 76);
+    doc.setLineWidth(0.8);
+    doc.roundedRect(9, 9, W - 18, H - 18, 3.5, 3.5, "S");
+
+    // Inner border
+    doc.setDrawColor(232, 201, 122);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(13, 13, W - 26, H - 26, 2, 2, "S");
+
+    // Top/bottom bars
+    doc.setFillColor(201, 168, 76);
+    doc.rect(9, 9, W - 18, 1.2, "F");
+    doc.rect(9, H - 10.2, W - 18, 1.2, "F");
+
+    // Header badge
+    var badgeW = 70, badgeH = 7, badgeY = 24;
+    doc.setFillColor(19, 32, 53);
+    doc.setDrawColor(201, 168, 76);
+    doc.setLineWidth(0.4);
+    doc.roundedRect(cx - badgeW / 2, badgeY, badgeW, badgeH, 1.5, 1.5, "FD");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(201, 168, 76);
+    doc.text(moduleLabel + " COMPLIANCE TRAINING", cx, badgeY + 4.6, { align: "center", charSpace: 0.8 });
+
+    // Title
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(30);
+    doc.setTextColor(220, 232, 245);
+    doc.text("Certificate of Completion", cx, 52, { align: "center" });
+
+    // Decorative line
+    doc.setDrawColor(201, 168, 76);
+    doc.setLineWidth(0.25);
+    doc.line(cx - 80, 56, cx + 80, 56);
+
+    // Subtitle
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(78, 106, 136);
+    doc.text("This is to certify that the participant has successfully completed all modules of the", cx, 63, { align: "center" });
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(232, 201, 122);
+    doc.text(moduleLabel + " Compliance Training Programme", cx, 70, { align: "center" });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(78, 106, 136);
+    doc.text("including theory, practice examples, scenario exercises, AI coaching and assessment.", cx, 77, { align: "center" });
+
+    // Level chip
+    var cleanLevel = (levelLabel || "").replace(/^[^\s]+\s/, "");
+    var chipW = 90, chipH = 10, chipY = 86;
+    doc.setFillColor(19, 32, 53);
+    doc.setDrawColor(28, 46, 71);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(cx - chipW / 2, chipY, chipW, chipH, 2, 2, "FD");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(78, 106, 136);
+    doc.text("TRAINING LEVEL", cx, chipY + 3.8, { align: "center", charSpace: 0.6 });
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9.5);
+    doc.setTextColor(220, 232, 245);
+    doc.text(cleanLevel, cx, chipY + 8.2, { align: "center" });
+
+    // Info columns
+    var colY = 107;
+    var cols = [
+        { label: "DATE ISSUED", value: today },
+        { label: "CERTIFICATE ID", value: certId.length > 30 ? certId.substring(0, 30) + "…" : certId },
+        { label: "ISSUED BY", value: moduleLabel + " Training Platform" }
+    ];
+    var colW = (W - 40) / 3;
+    for (var ci = 0; ci < cols.length; ci++) {
+        var x = 20 + ci * colW + colW / 2;
+        if (ci > 0) {
+            doc.setDrawColor(28, 46, 71);
+            doc.setLineWidth(0.2);
+            doc.line(20 + ci  colW, colY - 4, 20 + ci  colW, colY + 14);
+        }
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(7);
+        doc.setTextColor(201, 168, 76);
+        doc.text(cols[ci].label, x, colY, { align: "center", charSpace: 0.5 });
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(220, 232, 245);
+        doc.text(cols[ci].value, x, colY + 7, { align: "center" });
+    }
+
+    // Footer
+    doc.setDrawColor(201, 168, 76);
+    doc.setLineWidth(0.25);
+    doc.line(cx - 120, H - 16, cx + 120, H - 16);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.5);
+    doc.setTextColor(78, 106, 136);
+    doc.text("This certificate was generated by the " + moduleLabel + " Compliance Training Platform.", cx, H - 12, { align: "center" });
+
+    doc.save(moduleLabel + "-Certificate-" + certId + ".pdf");
 }
