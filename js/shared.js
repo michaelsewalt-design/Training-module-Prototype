@@ -531,12 +531,7 @@ var resultsSummary =
 
     var certId = moduleLabel + "-" + (selectedLevel || "").toUpperCase() + "-" + Date.now() + "-" + Math.floor(Math.random() * 100000);
 
-    var scoreCount = { goed: 0, gedeeltelijk: 0, onvoldoende: 0 };
-    for (var i = 0; i < quizResults.length; i++) {
-        if (scoreCount.hasOwnProperty(quizResults[i])) {
-            scoreCount[quizResults[i]]++;
         }
-    }
     var strictnessLabel = typeof STRICTNESS_LABELS !== "undefined" && selectedStrictness ? (STRICTNESS_LABELS[selectedStrictness] || selectedStrictness) : (selectedStrictness || "N/A");
     var resultsSummary = scoreCount.goed + ' correct · ' + scoreCount.gedeeltelijk + ' partial · ' + scoreCount.onvoldoende + ' insufficient';
 
@@ -579,11 +574,26 @@ function _generatePDF(certId) {
     var doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
     var W = 297, H = 210, cx = W / 2;
 
-    var moduleLabel = typeof MODULE !== "undefined" ? MODULE.toUpperCase() : "COMPLIANCE";
-    var levelLabel = typeof LEVEL_LABELS !== "undefined" && selectedLevel ? LEVEL_LABELS[selectedLevel] : selectedLevel;
-    var today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-    var strictnessLabel = typeof STRICTNESS_LABELS !== "undefined" && selectedStrictness ? (STRICTNESS_LABELS[selectedStrictness] || selectedStrictness) : (selectedStrictness || "N/A");
-    var resultsSummary = scoreCount.goed + ' correct · ' + scoreCount.gedeeltelijk + ' partial · ' + scoreCount.onvoldoende + ' insufficient';
+var moduleLabel = typeof MODULE !== "undefined" ? MODULE.toUpperCase() : "COMPLIANCE";
+var levelLabel = typeof LEVEL_LABELS !== "undefined" && selectedLevel ? LEVEL_LABELS[selectedLevel] : selectedLevel;
+var today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+
+var scoreCount = { goed: 0, gedeeltelijk: 0, onvoldoende: 0 };
+for (var i = 0; i < quizResults.length; i++) {
+    if (scoreCount.hasOwnProperty(quizResults[i])) {
+        scoreCount[quizResults[i]]++;
+    }
+}
+
+var strictnessLabel =
+    typeof STRICTNESS_LABELS !== "undefined" && selectedStrictness
+        ? (STRICTNESS_LABELS[selectedStrictness] || selectedStrictness)
+        : (selectedStrictness || "N/A");
+
+var resultsSummary =
+    scoreCount.goed + " correct · " +
+    scoreCount.gedeeltelijk + " partial · " +
+    scoreCount.onvoldoende + " insufficient";
 
 
     // Background
