@@ -59,20 +59,6 @@ var STRICTNESS_INSTRUCTIONS = {
 };
 
 // ─── INIT ──────────────────────────────
-
-function escapeHtml(value) {
-  return String(value == null ? '' : value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function safeTextToHtml(value) {
-  return escapeHtml(value).replace(/\n/g, '<br>');
-}
-
 document.addEventListener('DOMContentLoaded', function() {
   if (!requireAuth()) return;
 
@@ -80,20 +66,27 @@ document.addEventListener('DOMContentLoaded', function() {
     if (config && config.mar) {
       var a1Input = document.getElementById('agent1Id');
       var a2Input = document.getElementById('agent2Id');
-     
 
-if (a1Input && !a1Input.value) a1Input.placeholder = 'Optional override — leave blank to use the default coach';
-if (a2Input && !a2Input.value) a2Input.placeholder = 'Optional override — leave blank to use the default coach';
+      if (a1Input) {
+        a1Input.dataset.defaultAgent = config.mar.agent1 || '';
+        a1Input.placeholder = 'Optional override — leave blank to use the default coach';
+      }
 
-
+      if (a2Input) {
+        a2Input.dataset.defaultAgent = config.mar.agent2 || '';
+        a2Input.placeholder = 'Optional override — leave blank to use the default coach';
+      }
     }
   });
 });
 
 // ─── START TRAINING ────────────────────
 function startTraining() {
-  agent1Id = document.getElementById('agent1Id').value.trim();
-  agent2Id = document.getElementById('agent2Id').value.trim();
+  var agent1Input = document.getElementById('agent1Id');
+  var agent2Input = document.getElementById('agent2Id');
+
+  agent1Id = agent1Input.value.trim() || agent1Input.dataset.defaultAgent || '';
+  agent2Id = agent2Input.value.trim() || agent2Input.dataset.defaultAgent || '';
 
   document.getElementById('topLevel').textContent = LEVEL_LABELS[selectedLevel];
 
@@ -137,29 +130,28 @@ function loadExamples() {
     window._examples = examples;
 
     container.innerHTML = '';
-    if (!Array.isArray(examples)) { throw new Error('Examples response is not a valid array.'); }
     for (var i = 0; i < examples.length; i++) {
-      var ex = examples[i] || {};
+      var ex = examples[i];
       var el = document.createElement('div');
       el.className = 'example-case';
       el.id = 'example-' + i;
       el.innerHTML = '<div class="example-case-header">'
-        + '<div class="example-case-num">' + (i + 1) + '</div>'
-        + '<div class="example-case-meta"><h3>' + escapeHtml(ex.title || ('Example ' + (i + 1))) + '</h3><p>Practice Example</p></div>'
-        + '</div>'
-        + '<div class="example-case-body">'
-        + '<div class="example-scenario"><div class="example-scenario-label">Scenario</div><p>' + safeTextToHtml(ex.scenario || '') + '</p></div>'
-        + '<div class="example-question"><div class="example-question-label">Question</div><p>' + safeTextToHtml(ex.question || '') + '</p></div>'
-        + '<div class="example-answer-area">'
-        + '<textarea class="example-textarea" id="example-answer-' + i + '" placeholder="Type your answer here…" rows="3"></textarea>'
-        + '<button class="btn-evaluate" id="example-btn-' + i + '" onclick="evaluateExample(' + i + ')">Evaluate Answer</button>'
-        + '</div>'
-        + '<div class="example-feedback" id="example-fb-' + i + '"></div>'
-        + '</div>';
+- '<div class="example-case-num">' + (i + 1) + '</div>'
+- '<div class="example-case-meta"><h3>' + ex.title + '</h3><p>Practice Example</p></div>'
+- '</div>'
+- '<div class="example-case-body">'
+- '<div class="example-scenario"><div class="example-scenario-label">Scenario</div><p>' + ex.scenario + '</p></div>'
+- '<div class="example-question"><div class="example-question-label">Question</div><p>' + ex.question + '</p></div>'
+- '<div class="example-answer-area">'
+- '<textarea class="example-textarea" id="example-answer-' + i + '" placeholder="Type your answer here…" rows="3"></textarea>'
+- '<button class="btn-evaluate" id="example-btn-' + i + '" onclick="evaluateExample(' + i + ')">Evaluate Answer</button>'
+- '</div>'
+- '<div class="example-feedback" id="example-fb-' + i + '"></div>'
+- '</div>';
       container.appendChild(el);
     }
   }).catch(function(err) {
-    container.innerHTML = '<div class="empty-msg">⚠ Failed to load examples: ' + escapeHtml(err.message || 'Unknown error') + '</div>';
+    container.innerHTML = '<div class="empty-msg">⚠ Failed to load examples: ' + err.message + '</div>';
   });
 }
 
@@ -174,9 +166,9 @@ function evaluateExample(idx) {
   var ex = window._examples[idx];
 
   var prompt = 'You are a MAR compliance trainer. A trainee (' + LEVEL_LABELS[selectedLevel] + ') answered a practice example.\n\n'
-    + 'Scenario: ' + (ex.scenario || '') + '\nQuestion: ' + (ex.question || '') + '\nTrainee answer: ' + answer + '\n\n'
-    + 'Provide detailed learning feedback. This is NOT a pass/fail assessment — it is a learning exercise.\n\n'
-    + 'Return JSON only, no markdown:\n{\n  "quality": "good|partial|poor",\n  "goodPoints": "What the trainee did well (2-3 sentences)",\n  "attentionPoints": "Areas for improvement (2-3 sentences)",\n  "modelAnswer": "The ideal complete answer (3-5 sentences)"\n}';
+- 'Scenario: ' + ex.scenario + '\nQuestion: ' + ex.question + '\nTrainee answer: ' + answer + '\n\n'
+- 'Provide detailed learning feedback. This is NOT a pass/fail assessment — it is a learning exercise.\n\n'
+- 'Return JSON only, no markdown:\n{\n  "quality": "good|partial|poor",\n  "goodPoints": "What the trainee did well (2-3 sentences)",\n  "attentionPoints": "Areas for improvement (2-3 sentences)",\n  "modelAnswer": "The ideal complete answer (3-5 sentences)"\n}';
 
   callClaude(
     [{ role: 'user', content: prompt }],
@@ -189,19 +181,19 @@ function evaluateExample(idx) {
     var fbEl = document.getElementById('example-fb-' + idx);
     fbEl.className = 'example-feedback visible ' + (parsed.quality || 'partial');
     fbEl.innerHTML = '<div class="feedback-header">'
-      + '<span class="feedback-badge ' + (parsed.quality || 'partial') + '">'
-      + (parsed.quality === 'good' ? '✓ Strong Answer' : parsed.quality === 'poor' ? '✗ Needs Work' : '◑ Partial')
-      + '</span></div>'
-      + '<div class="feedback-section good-points"><strong>What You Did Well</strong>' + safeTextToHtml(parsed.goodPoints || '') + '</div>'
-      + '<div class="feedback-section attention-points"><strong>Points of Attention</strong>' + safeTextToHtml(parsed.attentionPoints || '') + '</div>'
-      + '<div class="feedback-section model-answer"><strong>Model Answer</strong>' + safeTextToHtml(parsed.modelAnswer || '') + '</div>';
+- '<span class="feedback-badge ' + (parsed.quality || 'partial') + '">'
+- (parsed.quality === 'good' ? '✓ Strong Answer' : parsed.quality === 'poor' ? '✗ Needs Work' : '◑ Partial')
+- '</span></div>'
+- '<div class="feedback-section good-points"><strong>What You Did Well</strong>' + (parsed.goodPoints || '') + '</div>'
+- '<div class="feedback-section attention-points"><strong>Points of Attention</strong>' + (parsed.attentionPoints || '') + '</div>'
+- '<div class="feedback-section model-answer"><strong>Model Answer</strong>' + (parsed.modelAnswer || '') + '</div>';
 
     btn.textContent = 'Evaluated ✓';
     checkAllExamplesDone();
   }).catch(function(err) {
     var fbEl = document.getElementById('example-fb-' + idx);
     fbEl.className = 'example-feedback visible partial';
-    fbEl.innerHTML = '<p>⚠ Evaluation error: ' + escapeHtml(err.message || 'Unknown error') + '</p>';
+    fbEl.innerHTML = '<p>⚠ Evaluation error: ' + err.message + '</p>';
     btn.disabled = false;
     btn.textContent = 'Try Again';
   });
@@ -223,7 +215,7 @@ function checkAllExamplesDone() {
 // ─── SCENARIOS ─────────────────────────
 function selectScenario(n) {
   activeScenario = n;
-  var btns = document.querySelectorAll('#scenarioBtn1, #scenarioBtn2');
+  var btns = document.querySelectorAll('scenarioBtn1, scenarioBtn2');
   for (var i = 0; i < btns.length; i++) { btns[i].classList.remove('selected'); }
   document.getElementById('scenarioBtn' + n).classList.add('selected');
 
