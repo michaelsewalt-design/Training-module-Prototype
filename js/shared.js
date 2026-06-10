@@ -507,9 +507,28 @@ function generateCertificate() {
     var popup = document.getElementById("popupOverlay");
     var content = document.getElementById("popupContent");
 
-    var moduleLabel = typeof MODULE !== "undefined" ? MODULE.toUpperCase() : "COMPLIANCE";
-    var levelLabel = typeof LEVEL_LABELS !== "undefined" && selectedLevel ? LEVEL_LABELS[selectedLevel] : selectedLevel;
-    var today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+var moduleLabel = typeof MODULE !== "undefined" ? MODULE.toUpperCase() : "COMPLIANCE";
+var levelLabel = typeof LEVEL_LABELS !== "undefined" && selectedLevel ? LEVEL_LABELS[selectedLevel] : selectedLevel;
+var today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+
+var scoreCount = { goed: 0, gedeeltelijk: 0, onvoldoende: 0 };
+for (var i = 0; i < quizResults.length; i++) {
+    if (scoreCount.hasOwnProperty(quizResults[i])) {
+        scoreCount[quizResults[i]]++;
+    }
+}
+
+var strictnessLabel =
+    typeof STRICTNESS_LABELS !== "undefined" && selectedStrictness
+        ? (STRICTNESS_LABELS[selectedStrictness] || selectedStrictness)
+        : (selectedStrictness || "N/A");
+
+var resultsSummary =
+    scoreCount.goed + " correct · " +
+    scoreCount.gedeeltelijk + " partial · " +
+    scoreCount.onvoldoende + " insufficient";
+
+
     var certId = moduleLabel + "-" + (selectedLevel || "").toUpperCase() + "-" + Date.now() + "-" + Math.floor(Math.random() * 100000);
 
     var scoreCount = { goed: 0, gedeeltelijk: 0, onvoldoende: 0 };
