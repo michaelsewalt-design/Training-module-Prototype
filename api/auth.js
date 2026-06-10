@@ -5,6 +5,22 @@ const attempts = new Map();
 const MAX_ATTEMPTS = 10;
 const LOCKOUT_MS = 15 * 60 * 1000;
 
+module.exports = async (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+
+  if (!process.env.AUTH_SECRET) {
+    console.error('AUTH_SECRET not configured');
+    return res.status(500).json({
+      success: false,
+      message: 'Server configuration error.'
+    });
+  }
+
+  // rest van je bestaande code
+};
+
+
+
 function cleanupAttempts() {
 const now = Date.now();
 for (const [ip, data] of attempts.entries()) {
