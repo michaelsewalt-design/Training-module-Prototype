@@ -92,10 +92,27 @@ function handleChatKey(event) {
     }
 }
 
+function escapeHtml(value) {
+    return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function escapeAttribute(value) {
+    return escapeHtml(value).replace(/\n/g, ' ');
+}
+
+function safeTextToHtml(value) {
+    return escapeHtml(value).replace(/\n/g, '<br>');
+}
+
 function formatText(text) {
     if (!text) return "";
 
-    var html = text;
+    var html = escapeHtml(text);
 
     // Bold
     html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
@@ -109,13 +126,12 @@ function formatText(text) {
 
     for (var i = 0; i < paragraphs.length; i++) {
         if (paragraphs[i].trim()) {
-        result += "<p>" + paragraphs[i].trim() + "</p>";
+            result += "<p>" + paragraphs[i].trim().replace(/\n/g, '<br>') + "</p>";
         }
     }
 
-    return result || ("<p>" + html + "</p>");
+    return result || ("<p>" + html.replace(/\n/g, '<br>') + "</p>");
 }
-
 
 function cleanJsonResponse(text) {
     var cleaned = text;
@@ -335,7 +351,7 @@ function loadQuiz() {
         window._quizQuestions = questions;
         renderQuizQuestions(questions);
     }).catch(function(err) {
-        container.innerHTML = '<div class="empty-msg">⚠ Failed to generate questions: ' + err.message + '</div>';
+        container.innerHTML = '<div class="empty-msg">⚠ Failed to generate questions: ' + escapeHtml(err.message || 'Unknown error') + '</div>';
     });
 }
 
@@ -351,10 +367,10 @@ function renderQuizQuestions(questions) {
         el.id = "qq" + i;
         el.innerHTML = '<div class="quiz-q-header">'
 + '<span class="quiz-num">Q' + (i + 1) + '</span>'
-+ '<div class="quiz-q-text">' + q.q + '</div>'
++ '<div class="quiz-q-text">' + safeTextToHtml(q.q || '') + '</div>'
 + '</div>'
 + '<div class="quiz-q-body">'
-+ '<textarea class="quiz-textarea" id="qa' + i + '" placeholder="' + (q.hint || "Type your answer...") + '" rows="3"></textarea>'
++ '<textarea class="quiz-textarea" id="qa' + i + '" placeholder="' + escapeAttribute(q.hint || "Type your answer...") + '" rows="3"></textarea>'
 + '<button class="btn-check" id="qbtn' + i + '" onclick="checkAnswer(' + i + ')">Check Answer</button>'
 + '<div class="quiz-feedback" id="qfb' + i + '">'
 + '<div class="fb-label" id="qfblabel' + i + '">Feedback</div>'
@@ -414,14 +430,14 @@ function checkAnswer(idx) {
         fbEl.className = "quiz-feedback visible " + (scoreMap[parsed.score] || "partial");
         document.getElementById("qfblabel" + idx).textContent = labelMap[parsed.score] || "Feedback";
         document.getElementById("qfbtext" + idx).innerHTML =
-          '<p><strong>Feedback:</strong> ' + (parsed.feedback || '') + '</p>' +
-          '<p style="margin-top:8px"><strong>Model Answer:</strong> ' + (parsed.correctAnswer || '') + '</p>';
+          '<p><strong>Feedback:</strong> ' + safeTextToHtml(parsed.feedback || '') + '</p>' +
+          '<p style="margin-top:8px"><strong>Model Answer:</strong> ' + safeTextToHtml(parsed.correctAnswer || '') + '</p>';
 
         btn.textContent = "Checked ✓";
 
         checkAllQuizDone();
     }).catch(function(err) {
-        document.getElementById("qfbtext" + idx).textContent = "Error: " + err.message;
+        document.getElementById("qfbtext" + idx).textContent = "Error: " + (err.message || "Unknown error");
         document.getElementById("qfb" + idx).className = "quiz-feedback visible partial";
         btn.disabled = false;
         btn.textContent = "Try Again";
@@ -504,11 +520,11 @@ function generateCertificate() {
     }
 
     content.innerHTML = '<h2>🏆 Certificate of Completion</h2>'
-+ '<p><strong>' + moduleLabel + ' Compliance Training</strong></p>'
-+ '<p>Level: ' + (levelLabel || "") + '</p>'
-+ '<p>Date: ' + today + '</p>'
++ '<p><strong>' + escapeHtml(moduleLabel) + ' Compliance Training</strong></p>'
++ '<p>Level: ' + escapeHtml(levelLabel || "") + '</p>'
++ '<p>Date: ' + escapeHtml(today) + '</p>'
 + '<p>Results: ' + scoreCount.goed + ' correct · ' + scoreCount.gedeeltelijk + ' partial · ' + scoreCount.onvoldoende + ' insufficient</p>'
-+ '<p style="font-size:11px;color:var(--muted);margin-top:4px">Certificate ID: ' + certId + '</p>'
++ '<p style="font-size:11px;color:var(--muted);margin-top:4px">Certificate ID: ' + escapeHtml(certId) + '</p>'
 + '<div class="popup-buttons">'
 + '<button class="btn-primary" onclick="downloadCertificatePDF(\'' + certId + '\')">Download PDF</button>'
 + '<button class="btn-secondary" onclick="closePopup()">Close</button>'
