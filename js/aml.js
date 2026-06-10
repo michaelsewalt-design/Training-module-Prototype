@@ -80,18 +80,27 @@ document.addEventListener('DOMContentLoaded', function() {
     if (config && config.aml) {
       var a1Input = document.getElementById('agent1Id');
       var a2Input = document.getElementById('agent2Id');
-    
 
-if (a1Input && !a1Input.value) a1Input.placeholder = 'Optional override — leave blank to use the default coach';
-if (a2Input && !a2Input.value) a2Input.placeholder = 'Optional override — leave blank to use the default coach';
+      if (a1Input) {
+        a1Input.dataset.defaultAgent = config.aml.agent1 || '';
+        a1Input.placeholder = 'Optional override — leave blank to use the default coach';
+      }
+
+      if (a2Input) {
+        a2Input.dataset.defaultAgent = config.aml.agent2 || '';
+        a2Input.placeholder = 'Optional override — leave blank to use the default coach';
+      }
     }
   });
 });
 
 // ─── START TRAINING ────────────────────
 function startTraining() {
-  agent1Id = document.getElementById('agent1Id').value.trim();
-  agent2Id = document.getElementById('agent2Id').value.trim();
+  var agent1Input = document.getElementById('agent1Id');
+  var agent2Input = document.getElementById('agent2Id');
+
+  agent1Id = agent1Input.value.trim() || agent1Input.dataset.defaultAgent || '';
+  agent2Id = agent2Input.value.trim() || agent2Input.dataset.defaultAgent || '';
 
   document.getElementById('topLevel').textContent = LEVEL_LABELS[selectedLevel];
 
