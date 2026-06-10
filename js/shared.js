@@ -399,16 +399,35 @@ function checkAnswer(idx) {
     var levelLabel = typeof LEVEL_LABELS !== "undefined" && selectedLevel ? LEVEL_LABELS[selectedLevel] : selectedLevel;
     var strictnessInstr = typeof STRICTNESS_INSTRUCTIONS !== "undefined" && selectedStrictness ? STRICTNESS_INSTRUCTIONS[selectedStrictness] : "";
 
-    var prompt = 'You are a ' + moduleLabel + ' compliance trainer. Evaluate the following answer from a ' + levelLabel + '.\n\n'
-+ 'STRICTNESS LEVEL:\n' + strictnessInstr + '\n\n'
-+ 'Question: ' + questions[idx].q + '\n\n'
-+ 'Trainee answer: ' + answer + '\n\n'
-+ 'Provide your evaluation in this exact JSON format (nothing else, no markdown):\n'
-+ '{\n  "score": "goed|gedeeltelijk|onvoldoende",\n'
-+ '  "feedback": "Max 4 sentences in English. Start with what was good, then areas for improvement.",\n'
-+ '  "correctAnswer": "The ideal complete answer, referencing relevant articles where appropriate, in English."\n}';
+    
 
-    callClaude(
+  var prompt = 'You are a ' + moduleLabel + ' compliance trainer. Evaluate the following answer from a ' + levelLabel + '.\n\n'
++ 'QUESTION:\n' + questions[idx].q + '\n\n'
++ 'TRAINEE ANSWER:\n' + answer + '\n\n'
++ 'STRICTNESS SETTING:\n' + selectedStrictness + '\n\n'
++ 'SCORING RULES:\n'
++ '- You must return exactly one of these scores: goed, gedeeltelijk, onvoldoende.\n'
++ '- Use the strictness setting as a hard grading instruction, not as a soft preference.\n'
++ '- If strictness is light: reward genuine effort and basic understanding. Only score onvoldoende if the answer is empty, fully incorrect, or clearly off-topic.\n'
++ '- If strictness is normal: require the main point to be correct. Minor omissions are acceptable, but major missing elements or incorrect assumptions prevent a score of goed.\n'
++ '- If strictness is hard: only score goed if the answer is complete, precise, and materially accurate. Missing key legal/regulatory elements, vague wording, or partial reasoning should usually result in gedeeltelijk. Clear errors or major omissions must result in onvoldoende.\n\n'
++ 'DECISION METHOD:\n'
++ '- First determine whether the answer is factually correct.\n'
++ '- Then determine whether key elements are missing.\n'
++ '- Then apply the strictness threshold.\n'
++ '- Be consistent: the same answer must receive a lower score under hard than under light if it is incomplete.\n\n'
++ 'OUTPUT FORMAT:\n'
++ 'Return valid JSON only, with no markdown and no extra text:\n'
++ '{\n'
++ '  "score": "goed|gedeeltelijk|onvoldoende",\n'
++ '  "feedback": "Max 4 sentences in English. Start with what was good, then name the most important improvements.",\n'
++ '  "correctAnswer": "The ideal complete answer, referencing relevant articles where appropriate, in English."\n'
++ '}';
+
+
+
+
+  callClaude(
         [{ role: "user", content: prompt }],
         "You are a precise compliance trainer. Respond only with the requested JSON object.",
         800
