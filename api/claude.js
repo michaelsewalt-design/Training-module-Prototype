@@ -46,34 +46,46 @@ return res.status(500).json({ error: 'Server configuration error' });
 }
 
 try {
-const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
-method: 'POST',
-headers: {
-'Content-Type': 'application/json',
-'x-api-key': apiKey,
-'anthropic-version': '2023-06-01'
-},
-body: JSON.stringify({
-model: model || 'claude-sonnet-4-20250514',
-max_tokens: max_tokens || 1024,
-system: system || '',
-messages
-})
-});
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
 
-if (!anthropicRes.ok) {
-const errBody = await anthropicRes.text();
-console.error('Anthropic API error:', anthropicRes.status, errBody);
-return res.status(anthropicRes.status).json({
-error: `Anthropic API error: ${anthropicRes.status}`,
-details: errBody
-});
-}
+  const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01'
+    },
+    body: JSON.stringify({
+      model: model || 'claude-sonnet-4-20250514',
+      max_tokens: max_tokens || 1024,
+      system: system || '',
+      messages
+    }),
+    signal: controller.signal
+  });
 
-const result = await anthropicRes.json();
-return res.status(200).json(result);
+  clearTimeout(timeout);
+
+  if (!anthropicRes.ok) {
+    const errBody = await anthropicRes.text();
+    console.error('Anthropic API error:', anthropicRes.status, errBody);
+    return res.status(anthropicRes.status).json({
+      error: `Anthropic API error: ${anthropicRes.status}`,
+      details: errBody
+    });
+  }
+
+  const result = await anthropicRes.json();
+  return res.status(200).json(result);
+
 } catch (err) {
-console.error('Proxy error:', err);
-return res.status(500).json({ error: 'Failed to reach AI service' });
+  if (err.name === 'AbortError') {
+    console.error('Anthropic API timeout');
+    return res.status(504).json({ error: 'AI service timed out' });
+  }
+
+  console.error('Proxy error:', err);
+  return res.status(500).json({ error: 'Failed to reach AI service' });
 }
 };
