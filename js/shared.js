@@ -581,9 +581,17 @@ function _generatePDF(certId) {
         }
     }
 
-    var strictnessLabel = typeof STRICTNESS_LABELS !== "undefined" && selectedStrictness
-        ? (STRICTNESS_LABELS[selectedStrictness] || selectedStrictness)
-        : (selectedStrictness || "N/A");
+
+
+var STRICTNESS_SHORT_LABELS = {
+    light: "Lenient",
+    normal: "Standard",
+    hard: "Strict"
+};
+
+var strictnessLabel = STRICTNESS_SHORT_LABELS[selectedStrictness] || "Standard";
+
+
     var resultsSummary = scoreCount.goed + " correct · " + scoreCount.gedeeltelijk + " partial · " + scoreCount.onvoldoende + " insufficient";
 
     // Background
