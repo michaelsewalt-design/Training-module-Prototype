@@ -519,20 +519,25 @@ function generateCertificate() {
         }
     }
 
+    var strictnessLabel = typeof STRICTNESS_LABELS !== "undefined" && selectedStrictness
+        ? (STRICTNESS_LABELS[selectedStrictness] || selectedStrictness)
+        : (selectedStrictness || "N/A");
+    var resultsSummary = scoreCount.goed + " correct · " + scoreCount.gedeeltelijk + " partial · " + scoreCount.onvoldoende + " insufficient";
+
     content.innerHTML = '<h2>🏆 Certificate of Completion</h2>'
-+ '<p><strong>' + escapeHtml(moduleLabel) + ' Compliance Training</strong></p>'
-+ '<p>Level: ' + escapeHtml(levelLabel || "") + '</p>'
-+ '<p>Date: ' + escapeHtml(today) + '</p>'
-+ '<p>Results: ' + scoreCount.goed + ' correct · ' + scoreCount.gedeeltelijk + ' partial · ' + scoreCount.onvoldoende + ' insufficient</p>'
-+ '<p style="font-size:11px;color:var(--muted);margin-top:4px">Certificate ID: ' + escapeHtml(certId) + '</p>'
-+ '<div class="popup-buttons">'
-+ '<button class="btn-primary" onclick="downloadCertificatePDF(\'' + certId + '\')">Download PDF</button>'
-+ '<button class="btn-secondary" onclick="closePopup()">Close</button>'
-+ '</div>';
+    + '<p><strong>' + escapeHtml(moduleLabel) + ' Compliance Training</strong></p>'
+    + '<p>Training Level: ' + escapeHtml(levelLabel || "") + '</p>'
+    + '<p>Assessment Level: ' + escapeHtml(strictnessLabel) + '</p>'
+    + '<p>Date: ' + escapeHtml(today) + '</p>'
+    + '<p>Results: ' + escapeHtml(resultsSummary) + '</p>'
+    + '<p style="font-size:11px;color:var(--muted);margin-top:4px">Certificate ID: ' + escapeHtml(certId) + '</p>'
+    + '<div class="popup-buttons">'
+    + '<button class="btn-primary" onclick="downloadCertificatePDF(\'" + certId + "\')">Download PDF</button>'
+    + '<button class="btn-secondary" onclick="closePopup()">Close</button>'
+    + '</div>';
 
     popup.classList.remove("hidden");
 }
-
 function closePopup() {
     document.getElementById("popupOverlay").classList.add("hidden");
 }
@@ -560,6 +565,18 @@ function _generatePDF(certId) {
     var levelLabel = typeof LEVEL_LABELS !== "undefined" && selectedLevel ? LEVEL_LABELS[selectedLevel] : selectedLevel;
     var today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
+    var scoreCount = { goed: 0, gedeeltelijk: 0, onvoldoende: 0 };
+    for (var i = 0; i < quizResults.length; i++) {
+        if (scoreCount.hasOwnProperty(quizResults[i])) {
+            scoreCount[quizResults[i]]++;
+        }
+    }
+
+    var strictnessLabel = typeof STRICTNESS_LABELS !== "undefined" && selectedStrictness
+        ? (STRICTNESS_LABELS[selectedStrictness] || selectedStrictness)
+        : (selectedStrictness || "N/A");
+    var resultsSummary = scoreCount.goed + " correct · " + scoreCount.gedeeltelijk + " partial · " + scoreCount.onvoldoende + " insufficient";
+
     // Background
     doc.setFillColor(7, 16, 30);
     doc.rect(0, 0, W, H, "F");
@@ -584,15 +601,18 @@ function _generatePDF(certId) {
     doc.rect(9, H - 10.2, W - 18, 1.2, "F");
 
     // Header badge
-    var badgeW = 70, badgeH = 7, badgeY = 24;
+    var badgeText = moduleLabel + " COMPLIANCE TRAINING";
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    var badgePaddingX = 8;
+    var badgeH = 7, badgeY = 24;
+    var badgeW = Math.max(70, doc.getTextWidth(badgeText) + badgePaddingX * 2);
     doc.setFillColor(19, 32, 53);
     doc.setDrawColor(201, 168, 76);
     doc.setLineWidth(0.4);
     doc.roundedRect(cx - badgeW / 2, badgeY, badgeW, badgeH, 1.5, 1.5, "FD");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7);
     doc.setTextColor(201, 168, 76);
-    doc.text(moduleLabel + " COMPLIANCE TRAINING", cx, badgeY + 4.6, { align: "center", charSpace: 0.8 });
+    doc.text(badgeText, cx, badgeY + 4.6, { align: "center" });
 
     // Title
     doc.setFont("helvetica", "bold");
@@ -621,22 +641,26 @@ function _generatePDF(certId) {
 
     // Level chip
     var cleanLevel = (levelLabel || "").replace(/^[^\s]+\s/, "");
-    var chipW = 90, chipH = 10, chipY = 86;
+    var chipW = 110, chipH = 16, chipY = 84;
     doc.setFillColor(19, 32, 53);
     doc.setDrawColor(28, 46, 71);
     doc.setLineWidth(0.3);
     doc.roundedRect(cx - chipW / 2, chipY, chipW, chipH, 2, 2, "FD");
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
+    doc.setFontSize(7.1);
     doc.setTextColor(78, 106, 136);
     doc.text("TRAINING LEVEL", cx, chipY + 3.8, { align: "center", charSpace: 0.6 });
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(9.5);
+    doc.setFontSize(9.3);
     doc.setTextColor(220, 232, 245);
-    doc.text(cleanLevel, cx, chipY + 8.2, { align: "center" });
+    doc.text(cleanLevel, cx, chipY + 8.6, { align: "center" });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.4);
+    doc.setTextColor(232, 201, 122);
+    doc.text("Assessment Level: " + strictnessLabel, cx, chipY + 13.2, { align: "center" });
 
     // Info columns
-    var colY = 107;
+    var colY = 114;
     var cols = [
         { label: "DATE ISSUED", value: today },
         { label: "CERTIFICATE ID", value: certId.length > 30 ? certId.substring(0, 30) + "…" : certId },
@@ -659,6 +683,21 @@ function _generatePDF(certId) {
         doc.setTextColor(220, 232, 245);
         doc.text(cols[ci].value, x, colY + 7, { align: "center" });
     }
+
+    // Results summary
+    var resultsY = 140;
+    doc.setFillColor(19, 32, 53);
+    doc.setDrawColor(28, 46, 71);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(42, resultsY - 7, W - 84, 16, 2, 2, "FD");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(201, 168, 76);
+    doc.text("RESULTS", cx, resultsY - 1.2, { align: "center", charSpace: 0.5 });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(220, 232, 245);
+    doc.text(resultsSummary, cx, resultsY + 5, { align: "center" });
 
     // Footer
     doc.setDrawColor(201, 168, 76);
