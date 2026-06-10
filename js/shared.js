@@ -507,46 +507,28 @@ function generateCertificate() {
     var popup = document.getElementById("popupOverlay");
     var content = document.getElementById("popupContent");
 
-var moduleLabel = typeof MODULE !== "undefined" ? MODULE.toUpperCase() : "COMPLIANCE";
-var levelLabel = typeof LEVEL_LABELS !== "undefined" && selectedLevel ? LEVEL_LABELS[selectedLevel] : selectedLevel;
-var today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-
-var scoreCount = { goed: 0, gedeeltelijk: 0, onvoldoende: 0 };
-for (var i = 0; i < quizResults.length; i++) {
-    if (scoreCount.hasOwnProperty(quizResults[i])) {
-        scoreCount[quizResults[i]]++;
-    }
-}
-
-var strictnessLabel =
-    typeof STRICTNESS_LABELS !== "undefined" && selectedStrictness
-        ? (STRICTNESS_LABELS[selectedStrictness] || selectedStrictness)
-        : (selectedStrictness || "N/A");
-
-var resultsSummary =
-    scoreCount.goed + " correct · " +
-    scoreCount.gedeeltelijk + " partial · " +
-    scoreCount.onvoldoende + " insufficient";
-
-
+    var moduleLabel = typeof MODULE !== "undefined" ? MODULE.toUpperCase() : "COMPLIANCE";
+    var levelLabel = typeof LEVEL_LABELS !== "undefined" && selectedLevel ? LEVEL_LABELS[selectedLevel] : selectedLevel;
+    var today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
     var certId = moduleLabel + "-" + (selectedLevel || "").toUpperCase() + "-" + Date.now() + "-" + Math.floor(Math.random() * 100000);
 
+    var scoreCount = { goed: 0, gedeeltelijk: 0, onvoldoende: 0 };
+    for (var i = 0; i < quizResults.length; i++) {
+        if (scoreCount.hasOwnProperty(quizResults[i])) {
+            scoreCount[quizResults[i]]++;
         }
-    var strictnessLabel = typeof STRICTNESS_LABELS !== "undefined" && selectedStrictness ? (STRICTNESS_LABELS[selectedStrictness] || selectedStrictness) : (selectedStrictness || "N/A");
-    var resultsSummary = scoreCount.goed + ' correct · ' + scoreCount.gedeeltelijk + ' partial · ' + scoreCount.onvoldoende + ' insufficient';
-
+    }
 
     content.innerHTML = '<h2>🏆 Certificate of Completion</h2>'
-    + '<p><strong>' + escapeHtml(moduleLabel) + ' Compliance Training</strong></p>'
-    + '<p>Training Level: ' + escapeHtml(levelLabel || '') + '</p>'
-    + '<p>Assessment Level: ' + escapeHtml(strictnessLabel) + '</p>'
-    + '<p>Date: ' + escapeHtml(today) + '</p>'
-    + '<p>Results: ' + escapeHtml(resultsSummary) + '</p>'
-    + '<p style="font-size:11px;color:var(--muted);margin-top:4px">Certificate ID: ' + escapeHtml(certId) + '</p>'
-    + '<div class="popup-buttons">'
-    + '<button class="btn-primary" onclick="downloadCertificatePDF(\'' + certId + '\')">Download PDF</button>'
-    + '<button class="btn-secondary" onclick="closePopup()">Close</button>'
-    + '</div>';
++ '<p><strong>' + escapeHtml(moduleLabel) + ' Compliance Training</strong></p>'
++ '<p>Level: ' + escapeHtml(levelLabel || "") + '</p>'
++ '<p>Date: ' + escapeHtml(today) + '</p>'
++ '<p>Results: ' + scoreCount.goed + ' correct · ' + scoreCount.gedeeltelijk + ' partial · ' + scoreCount.onvoldoende + ' insufficient</p>'
++ '<p style="font-size:11px;color:var(--muted);margin-top:4px">Certificate ID: ' + escapeHtml(certId) + '</p>'
++ '<div class="popup-buttons">'
++ '<button class="btn-primary" onclick="downloadCertificatePDF(\'' + certId + '\')">Download PDF</button>'
++ '<button class="btn-secondary" onclick="closePopup()">Close</button>'
++ '</div>';
 
     popup.classList.remove("hidden");
 }
@@ -574,27 +556,9 @@ function _generatePDF(certId) {
     var doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
     var W = 297, H = 210, cx = W / 2;
 
-var moduleLabel = typeof MODULE !== "undefined" ? MODULE.toUpperCase() : "COMPLIANCE";
-var levelLabel = typeof LEVEL_LABELS !== "undefined" && selectedLevel ? LEVEL_LABELS[selectedLevel] : selectedLevel;
-var today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-
-var scoreCount = { goed: 0, gedeeltelijk: 0, onvoldoende: 0 };
-for (var i = 0; i < quizResults.length; i++) {
-    if (scoreCount.hasOwnProperty(quizResults[i])) {
-        scoreCount[quizResults[i]]++;
-    }
-}
-
-var strictnessLabel =
-    typeof STRICTNESS_LABELS !== "undefined" && selectedStrictness
-        ? (STRICTNESS_LABELS[selectedStrictness] || selectedStrictness)
-        : (selectedStrictness || "N/A");
-
-var resultsSummary =
-    scoreCount.goed + " correct · " +
-    scoreCount.gedeeltelijk + " partial · " +
-    scoreCount.onvoldoende + " insufficient";
-
+    var moduleLabel = typeof MODULE !== "undefined" ? MODULE.toUpperCase() : "COMPLIANCE";
+    var levelLabel = typeof LEVEL_LABELS !== "undefined" && selectedLevel ? LEVEL_LABELS[selectedLevel] : selectedLevel;
+    var today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
     // Background
     doc.setFillColor(7, 16, 30);
@@ -620,18 +584,15 @@ var resultsSummary =
     doc.rect(9, H - 10.2, W - 18, 1.2, "F");
 
     // Header badge
-    var badgeText = moduleLabel + " COMPLIANCE TRAINING";
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7);
-    var badgePaddingX = 8;
-    var badgeH = 7, badgeY = 24;
-    var badgeW = Math.max(70, doc.getTextWidth(badgeText) + badgePaddingX * 2);
+    var badgeW = 70, badgeH = 7, badgeY = 24;
     doc.setFillColor(19, 32, 53);
     doc.setDrawColor(201, 168, 76);
     doc.setLineWidth(0.4);
     doc.roundedRect(cx - badgeW / 2, badgeY, badgeW, badgeH, 1.5, 1.5, "FD");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
     doc.setTextColor(201, 168, 76);
-    doc.text(badgeText, cx, badgeY + 4.6, { align: "center" });
+    doc.text(moduleLabel + " COMPLIANCE TRAINING", cx, badgeY + 4.6, { align: "center", charSpace: 0.8 });
 
     // Title
     doc.setFont("helvetica", "bold");
@@ -660,26 +621,22 @@ var resultsSummary =
 
     // Level chip
     var cleanLevel = (levelLabel || "").replace(/^[^\s]+\s/, "");
-    var chipW = 110, chipH = 16, chipY = 84;
+    var chipW = 90, chipH = 10, chipY = 86;
     doc.setFillColor(19, 32, 53);
     doc.setDrawColor(28, 46, 71);
     doc.setLineWidth(0.3);
     doc.roundedRect(cx - chipW / 2, chipY, chipW, chipH, 2, 2, "FD");
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.1);
+    doc.setFontSize(7.5);
     doc.setTextColor(78, 106, 136);
     doc.text("TRAINING LEVEL", cx, chipY + 3.8, { align: "center", charSpace: 0.6 });
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(9.3);
+    doc.setFontSize(9.5);
     doc.setTextColor(220, 232, 245);
-    doc.text(cleanLevel, cx, chipY + 8.6, { align: "center" });
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.4);
-    doc.setTextColor(232, 201, 122);
-    doc.text('Assessment Level: ' + strictnessLabel, cx, chipY + 13.2, { align: "center" });
+    doc.text(cleanLevel, cx, chipY + 8.2, { align: "center" });
 
     // Info columns
-    var colY = 114;
+    var colY = 107;
     var cols = [
         { label: "DATE ISSUED", value: today },
         { label: "CERTIFICATE ID", value: certId.length > 30 ? certId.substring(0, 30) + "…" : certId },
@@ -702,21 +659,6 @@ var resultsSummary =
         doc.setTextColor(220, 232, 245);
         doc.text(cols[ci].value, x, colY + 7, { align: "center" });
     }
-
-    // Results summary
-    var resultsY = 140;
-    doc.setFillColor(19, 32, 53);
-    doc.setDrawColor(28, 46, 71);
-    doc.setLineWidth(0.3);
-    doc.roundedRect(42, resultsY - 7, W - 84, 16, 2, 2, "FD");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7);
-    doc.setTextColor(201, 168, 76);
-    doc.text("RESULTS", cx, resultsY - 1.2, { align: "center", charSpace: 0.5 });
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.setTextColor(220, 232, 245);
-    doc.text(resultsSummary, cx, resultsY + 5, { align: "center" });
 
     // Footer
     doc.setDrawColor(201, 168, 76);
