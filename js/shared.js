@@ -524,20 +524,22 @@ function generateCertificate() {
         : (selectedStrictness || "N/A");
     var resultsSummary = scoreCount.goed + " correct · " + scoreCount.gedeeltelijk + " partial · " + scoreCount.onvoldoende + " insufficient";
 
-    content.innerHTML = '<h2>🏆 Certificate of Completion</h2>'
-    + '<p><strong>' + escapeHtml(moduleLabel) + ' Compliance Training</strong></p>'
-    + '<p>Training Level: ' + escapeHtml(levelLabel || "") + '</p>'
-    + '<p>Assessment Level: ' + escapeHtml(strictnessLabel) + '</p>'
-    + '<p>Date: ' + escapeHtml(today) + '</p>'
-    + '<p>Results: ' + escapeHtml(resultsSummary) + '</p>'
-    + '<p style="font-size:11px;color:var(--muted);margin-top:4px">Certificate ID: ' + escapeHtml(certId) + '</p>'
-    + '<div class="popup-buttons">'
-    + '<button class="btn-primary" onclick="downloadCertificatePDF(\'" + certId + "\')">Download PDF</button>'
-    + '<button class="btn-secondary" onclick="closePopup()">Close</button>'
-    + '</div>';
+    content.innerHTML = `
+        <h2>🏆 Certificate of Completion</h2>
+        <p><strong>${escapeHtml(moduleLabel)} Compliance Training</strong></p>
+        <p>Training Level: ${escapeHtml(levelLabel || "")}</p>
+        <p>Assessment Level: ${escapeHtml(strictnessLabel)}</p>
+        <p>Date: ${escapeHtml(today)}</p>
+        <p>Results: ${escapeHtml(resultsSummary)}</p>
+        <p style="font-size:11px;color:var(--muted);margin-top:4px">Certificate ID: ${escapeHtml(certId)}</p>
+        <div class="popup-buttons">
+            <button class="btn-primary" onclick="downloadCertificatePDF('${certId}')">Download PDF</button>
+            <button class="btn-secondary" onclick="closePopup()">Close</button>
+        </div>`;
 
     popup.classList.remove("hidden");
 }
+
 function closePopup() {
     document.getElementById("popupOverlay").classList.add("hidden");
 }
@@ -600,7 +602,7 @@ function _generatePDF(certId) {
     doc.rect(9, 9, W - 18, 1.2, "F");
     doc.rect(9, H - 10.2, W - 18, 1.2, "F");
 
-    // Header badge
+    // Header badge (dynamic width for proper centering)
     var badgeText = moduleLabel + " COMPLIANCE TRAINING";
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7);
@@ -710,3 +712,4 @@ function _generatePDF(certId) {
 
     doc.save(moduleLabel + "-Certificate-" + certId + ".pdf");
 }
+
