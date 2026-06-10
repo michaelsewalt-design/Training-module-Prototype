@@ -80,8 +80,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (config && config.mar) {
       var a1Input = document.getElementById('agent1Id');
       var a2Input = document.getElementById('agent2Id');
-      if (a1Input && !a1Input.value) a1Input.value = config.mar.agent1 || '';
-      if (a2Input && !a2Input.value) a2Input.value = config.mar.agent2 || '';
+     
+
+if (a1Input && !a1Input.value) a1Input.placeholder = 'Optional override — leave blank to use the default coach';
+if (a2Input && !a2Input.value) a2Input.placeholder = 'Optional override — leave blank to use the default coach';
+
+
     }
   });
 });
