@@ -519,9 +519,16 @@ function generateCertificate() {
         }
     }
 
-    var strictnessLabel = typeof STRICTNESS_LABELS !== "undefined" && selectedStrictness
-        ? (STRICTNESS_LABELS[selectedStrictness] || selectedStrictness)
-        : (selectedStrictness || "N/A");
+
+var strictnessShortLabels = {
+    light: "Lenient",
+    normal: "Standard",
+    hard: "Strict"
+};
+
+var strictnessLabel = strictnessShortLabels[selectedStrictness] || "Standard";
+
+
     var resultsSummary = scoreCount.goed + " correct · " + scoreCount.gedeeltelijk + " partial · " + scoreCount.onvoldoende + " insufficient";
 
     content.innerHTML = `
